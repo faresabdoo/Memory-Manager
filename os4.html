@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>مهام مدير الذاكرة الأساسية</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome للأيقونات في الملخص -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        /* === المتغيرات والألوان === */
+        :root {
+            --primary: #00BFFF;
+            --primary-hover: #009acd;
+            --primary-light: rgba(0, 191, 255, 0.15);
+            --bg-color: #f4fafe;
+            --text-main: #2c3e50;
+            --text-muted: #546e7a;
+            --white: #ffffff;
+            --success: #2ecc71;
+            --error: #e74c3c;
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.5);
+            --glass-shadow: 0 8px 32px 0 rgba(0, 191, 255, 0.15);
+        }
+
+        /* === الإعدادات الأساسية (بدون تمرير) === */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Cairo', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            background-image: radial-gradient(circle at 15% 50%, rgba(0, 191, 255, 0.08), transparent 25%),
+                              radial-gradient(circle at 85% 30%, rgba(0, 191, 255, 0.05), transparent 25%);
+            color: var(--text-main);
+            line-height: 1.8;
+            overflow: hidden; 
+            width: 100vw;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        /* شريط التقدم */
+        #progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 0%;
+            height: 6px;
+            background: linear-gradient(90deg, #00BFFF, #005f99);
+            z-index: 9999;
+            transition: width 0.3s ease;
+        }
+ /* أشكال الخلفية العائمة */
+        .bg-shapes {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -1;
+            overflow: hidden;
+        }
+        .shape {
+            position: absolute;
+            background: linear-gradient(45deg, rgba(0,191,255,0.1), rgba(0,191,255,0.05));
+            border-radius: 50%;
+            animation: float 15s infinite ease-in-out;
+        }
+        .shape:nth-child(1) { width: 300px; height: 300px; top: -100px; right: -50px; animation-duration: 20s; }
+        .shape:nth-child(2) { width: 400px; height: 400px; bottom: -150px; left: -100px; animation-duration: 25s; animation-delay: -5s; }
+        .shape:nth-child(3) { width: 200px; height: 200px; top: 40%; left: 20%; animation-duration: 18s; animation-delay: -2s; }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0) scale(1); }
+            50% { transform: translateY(-30px) scale(1.05); }
+        }
+        /* حاوية العرض التقديمي */
+        .presentation-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        /* === إعدادات الشرائح === */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(0.95);
+            transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 10%;
+            overflow-y: auto; 
+        }
+
+        .slide.active {
+            opacity: 1;
+            visibility: visible;
+            transform: scale(1);
+            z-index: 10;
+        }
+
+        /* === التأثيرات الزجاجية === */
+        .glass {
+            background: var(--glass-bg);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        /* === المحتوى داخل الشرائح === */
+        .hero-title {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-bottom: 30px;
+            text-align: center;
+            text-shadow: 0 2px 10px rgba(0, 191, 255, 0.2);
+        }
+
+        .hero-intro {
+            font-size: 1.4rem;
+            color: var(--text-muted);
+            max-width: 900px;
+            padding: 40px;
+            text-align: center;
+            line-height: 2.2;
+        }
+          .hero-icon {
+            font-size: 80px;
+            color: var(--primary);
+            margin-bottom: 20px;
+            animation: bounce 2s infinite ease-in-out;
+        }
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        .tasks-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            width: 100%;
+            max-width: 1200px;
+        }
+
+        .task-card {
+           padding: 30px;
+            align-items: center;
+            text-align: center;
+            transition: transform 0.3s ease;
+        }
+
+         .task-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0, 191, 255, 0.2);
+        }
+
+         .task-icon {
+            width: 80px; height: 80px;
+            background-color: var(--secondary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: var(--primary);
+            margin: 0 auto 20px auto;
+            transition: all 0.3s ease;
+        }
+      .task-card:hover .task-icon {
+            background-color: var(--primary);
+            color: var(--white);
+            transform: scale(1.1);
+        }
+
+        .task-content {
+            font-size: 1.2rem;
+        }
+
+        .joke-card {
+            text-align: center;
+            padding: 30px;
+            margin-top: 30px;
+            background: linear-gradient(135deg, var(--primary), #007bb5);
+            color: var(--white);
+            border-radius: 20px;
+            font-size: 1.5rem;
+            font-weight: 700;
+            width: 100%;
+            max-width: 1200px;
+            box-shadow: 0 15px 30px rgba(0, 191, 255, 0.3);
+        }
+
+        .game-intro {
+            font-size: 1.4rem;
+            margin-bottom: 30px;
+            padding: 30px;
+            font-weight: 600;
+            text-align: center;
+            max-width: 900px;
+        }
+
+        .scenario-card {
+            padding: 40px;
+            border-right: 6px solid var(--primary);
+            max-width: 900px;
+            width: 100%;
+        }
+
+        .scenario-text {
+            font-size: 1.4rem;
+            margin-bottom: 30px;
+            font-weight: 600;
+            line-height: 2;
+        }
+
+        .game-outro {
+            text-align: center;
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: var(--primary);
+            margin-top: 30px;
+        }
+
+        /* تنسيقات الملخص */
+        .container {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .section-title {
+            text-align: center;
+            font-size: 2.2rem;
+            color: var(--primary);
+            margin-bottom: 25px;
+            font-weight: 800;
+        }
+
+        .summary-list {
+            list-style: none;
+            padding: 30px;
+            font-size: 1.3rem;
+            font-weight: 600;
+            line-height: 2;
+            background: var(--glass-bg);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        .summary-list li {
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid var(--primary-light);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .summary-list li:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .summary-list i {
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        /* أزرار اللعبة */
+        .choices-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .choice-btn {
+            background: var(--white);
+            color: var(--text-main);
+            border: 2px solid var(--primary-light);
+            padding: 15px 25px;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.3s;
+            flex: 1 1 calc(50% - 15px);
+        }
+
+        .choice-btn:hover:not(:disabled) {
+            background: var(--primary);
+            color: var(--white);
+            border-color: var(--primary);
+        }
+
+        .choice-btn.correct { background: var(--success); color: var(--white); border-color: var(--success); }
+        .choice-btn.wrong { background: var(--error); color: var(--white); border-color: var(--error); }
+        .choice-btn:disabled { cursor: not-allowed; opacity: 0.7; }
+
+        .feedback-msg {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 1.2rem;
+            display: none;
+        }
+        .feedback-msg.success-msg { background: rgba(46, 204, 113, 0.2); color: #27ae60; display: block; }
+        .feedback-msg.error-msg { background: rgba(231, 76, 60, 0.2); color: #c0392b; display: block; }
+
+        /* === أزرار التحكم بالشريحة (التالي/السابق) === */
+        .controls {
+            position: fixed;
+            bottom: 30px;
+            left: 0;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            z-index: 100;
+        }
+
+        .nav-btn {
+            background: var(--primary);
+            color: var(--white);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.3);
+            transition: all 0.3s;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: var(--primary-hover);
+            transform: translateY(-3px);
+        }
+
+        .nav-btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .slide-indicator {
+            font-size: 1.2rem;
+            font-weight: 800;
+            color: var(--text-muted);
+            background: var(--glass-bg);
+            padding: 8px 20px;
+            border-radius: 20px;
+            box-shadow: var(--glass-shadow);
+        }
+
+        footer {
+            margin-top: 40px;
+            color: var(--text-muted);
+            font-weight: 600;
+            font-size: 1.1rem;
+            text-align: center;
+        }
+
+        @media (max-width: 768px) {
+            .hero-title { font-size: 2rem; }
+            .hero-intro, .scenario-text { font-size: 1.1rem; }
+            .choice-btn { flex: 1 1 100%; }
+            .slide { padding: 20px 5%; padding-bottom: 100px; }
+            .summary-list { font-size: 1.1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- شريط تقدم القراءة -->
+    <div id="progress-bar"></div>
+
+    <!-- أشكال الخلفية -->
+    <div class="bg-shapes">
+        <div class="shape"></div>
+        <div class="shape"></div>
+        <div class="shape"></div>
+    </div>
+    <!-- حاوية العرض التقديمي (الشرائح) -->
+    <div class="presentation-container" id="presentation">
+
+        <!-- الشريحة 1: المقدمة -->
+        <div class="slide active">
+             <i class="fas fa-hotel hero-icon"></i>
+            <h1 class="hero-title"> مهام مدير الذاكرة الأساسية.</h1>
+            <div class="hero-intro glass">
+                تخيل معي أن "مدير الذاكرة" (Memory Manager أو MM) يشبه تماماً مدير الاستقبال في فندق ضخم ومزدحم جداً (حيث يمثل الفندق الذاكرة الرئيسية، والنزلاء هم البرامج). هذا المدير لديه مهام حيوية لضمان راحة النزلاء وعدم حدوث أي فوضى، وتتلخص في الآتي:
+            </div>
+        </div>
+
+        <!-- الشريحة 2: المهام (1 إلى 3) -->
+        <div class="slide">
+            <div class="tasks-grid">
+                <div class="task-card glass">
+                    <div class="task-icon"><i class="fas fa-search-location"></i></div>
+                    <div class="task-content">
+                        <strong>1.تتبع الغرف:</strong> يقوم المدير باستمرار بتتبع أجزاء الذاكرة المستخدمة (الغرف المشغولة) والأجزاء غير المستخدمة (الغرف الفارغة).
+                    </div>
+                </div>
+                <div class="task-card glass">
+                     <div class="task-icon"><i class="fas fa-key"></i></div>
+                    <div class="task-content">
+                        <strong>2.حجز الغرف وتسكين النزلاء:</strong> عندما يصل برنامج جديد يحتاج إلى العمل، يخصص له المدير جزءاً مناسباً من الذاكرة ويحدد أين سيتم وضعه، ثم يقوم بتحميله داخل الذاكرة لكي يبدأ عمله.
+                    </div>
+                </div>
+                <div class="task-card glass">
+                    <div class="task-icon"><i class="fas fa-door-open"></i></div>
+                    <div class="task-content">
+                        <strong>3.تسجيل الخروج (التحرير):</strong> بمجرد انتهاء البرنامج من مهمته، يقوم المدير بتفريغ وتحرير الذاكرة التي كان يشغلها ليتمكن برنامج آخر من استخدامها.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- الشريحة 3: المهام (4 و 5) والفاصل الفكاهي -->
+        <div class="slide">
+            <div class="tasks-grid">
+                <div class="task-card glass">
+                    <div class="task-icon"><i class="fas fa-exchange-alt"></i></div>
+                    <div class="task-content">
+                        <strong>4.إدارة الحقائب والتبديل (Swapping):</strong> إذا كانت هناك حاجة، يدير هذا المدير عملية التبديل بين الذاكرة الرئيسية والقرص الصلب، تماماً كمن ينقل أمتعة بعض النزلاء مؤقتاً إلى المستودع لإفساح المجال لغيرهم.
+                    </div>
+                </div>
+                <div class="task-card glass">
+                     <div class="task-icon"><i class="fas fa-shield-alt"></i></div>
+                    <div class="task-content">
+                        <strong>5.الأمن والحماية:</strong> يحرص المدير أشد الحرص على ألا يقتحم أي برنامج المساحة الخاصة ببرنامج آخر، كما يقوم بحماية الجزء الخاص بـ "نظام التشغيل" نفسه (غرفة الإدارة) من أي عبث.
+                    </div>
+                </div>
+            </div>
+            <div class="joke-card">
+                بالمناسبة، هل تعرف لماذا ذهب "مدير الذاكرة" إلى الطبيب؟ لأنه فقد "ذاكرته" ولم يعد قادراً على تتبع العناوين! 😄
+            </div>
+        </div>
+
+        <!-- الشريحة 4: مقدمة اللعبة 1 + الموقف الأول -->
+        <div class="slide">
+            <div class="game-intro glass">
+                لعبة قصيرة وممتعة لتثبيت المعلومات. 🎮<br><br>
+                تخيل أنك الآن "مدير فندق الذاكرة" (Memory Manager) العظيم، وأنا موظف الاستقبال الذي يخبرك بما يحدث في بهو الفندق. سأعرض عليك 3 مواقف، وأريد منك أن تخبرني كيف ستتصرف في كل منها بناءً على مهامك التي تعلمناها قبل قليل:
+            </div>
+            <div class="scenario-card glass">
+                <div class="scenario-text">
+                    الموقف الأول: انتهى "برنامج الآلة الحاسبة" من حساب معادلاته وغادر الفندق نهائياً. ماذا ستفعل بغرفته (المساحة التي كان يشغلها) الآن؟
+                </div>
+                <div class="choices-container">
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'تتبع الغرف')">تتبع الغرف</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, true, 'تسجيل الخروج (التحرير)')">تسجيل الخروج (التحرير)</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'الأمن والحماية')">الأمن والحماية</button>
+                </div>
+                <div class="feedback-msg"></div>
+            </div>
+        </div>
+
+        <!-- الشريحة 5: الموقف الثاني -->
+        <div class="slide">
+            <div class="scenario-card glass">
+                <div class="scenario-text">
+                    الموقف الثاني: وصل "برنامج الألعاب" (نزيل جديد) ويحتاج لمساحة للعمل، لكن الفندق ممتلئ! ومع ذلك، لاحظت أن "برنامج مشغل الموسيقى" في حالة توقف ولا يعمل حالياً. فقررتَ نقل أمتعته مؤقتاً إلى المخزن (القرص الصلب) لإفساح المجال لبرنامج الألعاب. ماذا نُسمي عملية التبديل هذه؟
+                </div>
+                <div class="choices-container">
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'حجز الغرف وتسكين النزلاء')">حجز الغرف وتسكين النزلاء</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, true, 'إدارة الحقائب والتبديل (Swapping)')">إدارة الحقائب والتبديل (Swapping)</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'تتبع الغرف')">تتبع الغرف</button>
+                </div>
+                <div class="feedback-msg"></div>
+            </div>
+        </div>
+
+        <!-- الشريحة 6: الموقف الثالث -->
+        <div class="slide">
+            <div class="scenario-card glass">
+                <div class="scenario-text">
+                    الموقف الثالث: حاول "برنامج مجهول" التسلل ومحاولة فتح باب غرفة الإدارة الخاصة بك (المساحة المخصصة لنظام التشغيل) ليعبث بملفاتها! ما هو دورك الأساسي في هذه اللحظة لمنعه؟
+                </div>
+                <div class="choices-container">
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'تسجيل الخروج')">تسجيل الخروج</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'التبديل')">التبديل</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, true, 'الأمن والحماية')">الأمن والحماية</button>
+                </div>
+                <div class="feedback-msg"></div>
+            </div>
+            <div class="game-outro">
+                أنا بانتظار قراراتك يا مديرنا الذكي! 🕵️‍♂️💼
+            </div>
+        </div>
+
+        <!-- الشريحة 7: مقدمة اللعبة 2 + اللغز الأول -->
+        <div class="slide">
+            <div class="game-intro glass">
+                سنلعب لعبة "من أنا؟" (ألغاز سريعة). سأعطيك 3 ألغاز خفيفة عن مهام مدير الذاكرة التي درسناها للتو، وعليك أن تحزر المصطلح أو المهمة المناسبة لكل لغز. هل أنت مستعد؟🕵️‍♂️
+            </div>
+            <div class="scenario-card glass">
+                <div class="scenario-text">
+                    اللغز الأول: "أنا الحارس الشخصي الصارم! أقف دائماً أمام غرفة الإدارة (نظام التشغيل) وأمنع أي ضيف (برنامج) من الدخول إليها أو العبث بملفاتها. ما هي هذه المهمة؟"
+                </div>
+                <div class="choices-container">
+                    <button class="choice-btn" onclick="checkAnswer(this, true, 'الأمن والحماية')">الأمن والحماية</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'تتبع الغرف')">تتبع الغرف</button>
+                </div>
+                <div class="feedback-msg"></div>
+            </div>
+        </div>
+
+        <!-- الشريحة 8: اللغز الثاني -->
+        <div class="slide">
+            <div class="scenario-card glass">
+                <div class="scenario-text">
+                    اللغز الثاني: "أنا أشبه بسيارة النقل الطارئة! عندما يمتلئ الفندق بالكامل، أقوم بنقل أمتعة البرامج النائمة مؤقتاً إلى المخزن (القرص الصلب) لأسمح للبرامج النشطة والمهمة بالدخول. ماذا تُسمي عملي؟"
+                </div>
+                <div class="choices-container">
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'تسكين النزلاء')">تسكين النزلاء</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, true, 'إدارة الحقائب والتبديل (Swapping)')">إدارة الحقائب والتبديل (Swapping)</button>
+                </div>
+                <div class="feedback-msg"></div>
+            </div>
+        </div>
+
+        <!-- الشريحة 9: اللغز الثالث والنهاية -->
+        <div class="slide">
+            <div class="scenario-card glass">
+                <div class="scenario-text">
+                    اللغز الثالث: "أنا موظف النظافة والترتيب! بمجرد أن ينهي البرنامج عمله ويغادر، أقوم بإعلان أن مساحته أصبحت فارغة ومتاحة لاستقبال ضيف جديد فوراً، لكي لا نهدر أي مساحة. ما اسم هذه العملية؟"
+                </div>
+                <div class="choices-container">
+                    <button class="choice-btn" onclick="checkAnswer(this, true, 'تسجيل الخروج (التحرير)')">تسجيل الخروج (التحرير)</button>
+                    <button class="choice-btn" onclick="checkAnswer(this, false, 'تتبع الغرف')">تتبع الغرف</button>
+                </div>
+                <div class="feedback-msg"></div>
+            </div>
+            <div class="game-outro">
+                أنا بانتظار إجاباتك يا بطل! 🚀
+            </div>
+        </div>
+
+        <!-- الشريحة 10: الملخص والخاتمة -->
+        <div class="slide">
+            <div class="container">
+                <h2 class="section-title">خلاصة مهام مدير الذاكرة 📌</h2>
+                <ul class="summary-list">
+                    <li><i class="fas fa-check-circle"></i> تتبع المساحات الفارغة والمشغولة باستمرار.</li>
+                    <li><i class="fas fa-check-circle"></i> حجز مساحة للبرامج الجديدة وتحميلها.</li>
+                    <li><i class="fas fa-check-circle"></i> تحرير مساحة البرامج المنتهية.</li>
+                    <li><i class="fas fa-check-circle"></i> إجراء عملية التبديل (Swapping) عند امتلاء الذاكرة.</li>
+                    <li><i class="fas fa-check-circle"></i> حماية مساحات البرامج ونظام التشغيل من التداخل.</li>
+                </ul>
+                <div style="text-align:center; margin-top:30px;">
+                    <button onclick="goToSlide(0)" class="nav-btn"><i class="fas fa-redo"></i> إعادة العرض من البداية</button>
+                </div>
+            </div>
+            <footer class="glass" style="padding: 15px; border-radius: 10px;">
+                تم تصميم هذه التجربة التفاعلية لتبسيط وفهم مهام مدير الذاكرة الأساسية بأسلوب مبتكر. ✨
+            </footer>
+        </div>
+
+    </div>
+
+    <!-- أزرار التنقل بين الشرائح -->
+    <div class="controls">
+        <button class="nav-btn" id="next-btn" onclick="nextSlide()">التالي ▶</button>
+        <div class="slide-indicator" id="slide-indicator">1 / 10</div>
+        <button class="nav-btn" id="prev-btn" onclick="prevSlide()" disabled>◀ السابق</button>
+    </div>
+
+    <!-- سكريبت التشغيل -->
+    <script>
+        const slides = document.querySelectorAll('.slide');
+        const nextBtn = document.getElementById('next-btn');
+        const prevBtn = document.getElementById('prev-btn');
+        const indicator = document.getElementById('slide-indicator');
+        const progressBar = document.getElementById('progress-bar');
+        
+        let currentSlideIndex = 0;
+
+        // دالة عرض الشريحة المحددة
+        function updateSlide() {
+            slides.forEach((slide, index) => {
+                if (index === currentSlideIndex) {
+                    slide.classList.add('active');
+                } else {
+                    slide.classList.remove('active');
+                }
+            });
+
+            // تحديث الأزرار والمؤشرات
+            indicator.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
+            prevBtn.disabled = currentSlideIndex === 0;
+            nextBtn.disabled = currentSlideIndex === slides.length - 1;
+
+            // تحديث شريط التقدم
+            const progress = ((currentSlideIndex + 1) / slides.length) * 100;
+            progressBar.style.width = `${progress}%`;
+        }
+
+        // التنقل للشريحة التالية
+        function nextSlide() {
+            if (currentSlideIndex < slides.length - 1) {
+                currentSlideIndex++;
+                updateSlide();
+            }
+        }
+
+        // التنقل للشريحة السابقة
+        function prevSlide() {
+            if (currentSlideIndex > 0) {
+                currentSlideIndex--;
+                updateSlide();
+            }
+        }
+
+        // الانتقال لشريحة محددة (مستخدمة في زر إعادة العرض)
+        function goToSlide(index) {
+            if (index >= 0 && index < slides.length) {
+                currentSlideIndex = index;
+                updateSlide();
+            }
+        }
+
+        // دعم التنقل عبر لوحة المفاتيح (الأسهم)
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'ArrowLeft') {
+                nextSlide(); 
+            } else if (e.key === 'ArrowRight') {
+                prevSlide(); 
+            }
+        });
+
+        // منطق التفاعل مع الأزرار (ألعاب الأسئلة)
+        function checkAnswer(btnElement, isCorrect, answerText) {
+            const container = btnElement.parentElement;
+            const allButtons = container.querySelectorAll('.choice-btn');
+            const feedbackMsg = container.nextElementSibling;
+
+            // إيقاف جميع الأزرار
+            allButtons.forEach(btn => {
+                btn.disabled = true;
+            });
+
+            // إظهار النتيجة
+            if(isCorrect) {
+                btnElement.classList.add('correct');
+                feedbackMsg.innerHTML = "إجابة صحيحة! أحسنت أيها المدير الذكي. 🎉";
+                feedbackMsg.className = "feedback-msg success-msg";
+            } else {
+                btnElement.classList.add('wrong');
+                feedbackMsg.innerHTML = "إجابة خاطئة! حاول مراجعة المهام مرة أخرى. 💡";
+                feedbackMsg.className = "feedback-msg error-msg";
+                
+                // تحديد الإجابة الصحيحة
+                allButtons.forEach(btn => {
+                    if(btn.onclick.toString().includes("true")) {
+                        btn.classList.add('correct');
+                    }
+                });
+            }
+        }
+
+        // تهيئة مبدئية
+        updateSlide();
+    </script>
+</body>
+</html>
