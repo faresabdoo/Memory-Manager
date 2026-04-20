@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>لوحة تحليل بيانات الطلاب | التجزئة الديناميكية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Cairo:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
+
+<style>
+/* ─── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --sky:        #00BFFF;
+  --sky-dark:   #0090CC;
+  --sky-light:  #7FDFFF;
+  --sky-pale:   #E0F7FF;
+  --white:      #FFFFFF;
+  --off-white:  #F4FBFF;
+  --text-dark:  #0A1628;
+  --text-mid:   #2D4A6B;
+  --text-soft:  #5A7FA0;
+  --card-bg:    rgba(255,255,255,0.85);
+  --card-border:rgba(0,191,255,0.22);
+  --shadow-sky: 0 8px 32px rgba(0,191,255,0.12);
+  --shadow-hover:0 12px 48px rgba(0,144,204,0.18);
+  --radius-lg:  24px;
+  --radius-md:  16px;
+  --radius-sm:  8px;
+  --font-main:  'Cairo', 'Tajawal', sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+  --danger:     #FF6B6B;
+  --success:    #00C878;
+  --warning:    #FFB020;
+}
+
+/* ─── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-main);
+  background: var(--off-white);
+  color: var(--text-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Animated Background ───────────────────────────────────── */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -2;
+  background: radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,191,255,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 90% 80%, rgba(0,144,204,0.06) 0%, transparent 60%),
+              linear-gradient(160deg, #F0FAFF 0%, #E8F7FF 40%, #F8FDFF 100%);
+}
+
+/* ─── Layout ────────────────────────────────────────────────── */
+.dashboard-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 8px; flex-wrap: wrap; gap: 16px;
+}
+.brand {
+  font-size: 1.5rem; font-weight: 800; color: var(--sky-dark);
+  display: flex; align-items: center; gap: 12px;
+}
+.brand-icon {
+  width: 40px; height: 40px; border-radius: 12px;
+  background: linear-gradient(135deg, var(--sky-dark), var(--sky));
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 1.2rem; box-shadow: 0 4px 12px rgba(0,191,255,0.3);
+}
+.header-actions { display: flex; gap: 12px; align-items: center; }
+.btn-refresh {
+  background: var(--white); border: 1px solid var(--card-border);
+  padding: 10px 16px; border-radius: var(--radius-sm); color: var(--sky-dark);
+  font-weight: 600; cursor: pointer; transition: var(--transition);
+  display: flex; align-items: center; gap: 8px; box-shadow: var(--shadow-sky);
+}
+.btn-refresh:hover { background: var(--sky-pale); border-color: var(--sky); transform: translateY(-2px); }
+
+/* ─── Glass Card Base ───────────────────────────────────────── */
+.glass-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sky);
+  padding: 24px;
+  transition: var(--transition);
+  position: relative; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.glass-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+.card-header { font-size: 1.1rem; font-weight: 700; color: var(--text-dark); margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; }
+
+/* ─── KPI Grid ──────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px;
+}
+.kpi-card { padding: 20px; gap: 8px; justify-content: center; }
+.kpi-title { font-size: 0.9rem; color: var(--text-soft); font-weight: 600; }
+.kpi-value { font-size: 2.2rem; font-weight: 900; color: var(--sky-dark); font-family: var(--font-mono); }
+.kpi-sub { font-size: 0.8rem; color: var(--text-mid); font-weight: 500; display:flex; align-items:center; gap:6px; }
+.kpi-trend { padding: 2px 8px; border-radius: 12px; font-size: 0.75rem; font-weight: 700; }
+.trend-good { background: rgba(0,200,120,0.15); color: var(--success); }
+.trend-bad { background: rgba(255,107,107,0.15); color: var(--danger); }
+
+/* ─── Charts Grid ───────────────────────────────────────────── */
+.charts-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px;
+}
+
+/* Distribution Chart (CSS Vanilla) */
+.bar-chart-container {
+  display: flex; align-items: flex-end; justify-content: space-around;
+  height: 180px; padding-top: 20px; flex-grow: 1;
+}
+.bar-col {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; width: 15%;
+}
+.bar-track {
+  width: 100%; height: 140px; background: rgba(0,191,255,0.08); border-radius: 8px 8px 0 0;
+  display: flex; align-items: flex-end; position: relative;
+}
+.bar-fill {
+  width: 100%; background: linear-gradient(180deg, var(--sky-light), var(--sky-dark));
+  border-radius: 8px 8px 0 0; transition: height 1s ease-out; height: 0%;
+  box-shadow: 0 4px 12px rgba(0,191,255,0.3);
+}
+.bar-label { font-size: 0.85rem; font-weight: 700; color: var(--text-mid); }
+.bar-val-label { position: absolute; top: -22px; width: 100%; text-align: center; font-size: 0.8rem; font-weight: 800; color: var(--sky-dark); }
+
+/* Accuracy Chart (Progress Bars) */
+.accuracy-list { display: flex; flex-direction: column; gap: 16px; flex-grow: 1; justify-content: center; }
+.acc-item { display: flex; flex-direction: column; gap: 6px; }
+.acc-header { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: var(--text-mid); }
+.acc-track { width: 100%; height: 12px; background: rgba(255,107,107,0.15); border-radius: 6px; overflow: hidden; display: flex; }
+.acc-fill { height: 100%; background: var(--success); transition: width 1s ease-out; width: 0%; }
+
+/* Line Chart (SVG Vanilla) */
+.line-chart-container { flex-grow: 1; position: relative; width: 100%; height: 180px; }
+svg.line-chart { width: 100%; height: 100%; overflow: visible; }
+.line-path { fill: none; stroke: var(--sky); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; transition: 1s ease-out; }
+.line-fill { fill: rgba(0,191,255,0.1); transition: 1s ease-out; }
+.line-point { fill: var(--white); stroke: var(--sky-dark); stroke-width: 2; transition: 0.3s; cursor: pointer; }
+.line-point:hover { r: 6; fill: var(--sky-dark); }
+
+/* Smart Insights */
+.insights-list { display: flex; flex-direction: column; gap: 12px; }
+.insight-item {
+  display: flex; gap: 12px; padding: 14px; border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, rgba(0,191,255,0.05), transparent);
+  border-right: 3px solid var(--sky); align-items: center;
+}
+.insight-icon { font-size: 1.2rem; }
+.insight-text { font-size: 0.9rem; font-weight: 600; color: var(--text-mid); line-height: 1.5; }
+.insight-text span { color: var(--sky-dark); font-weight: 800; }
+
+/* ─── Table Section ─────────────────────────────────────────── */
+.table-controls {
+  display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 20px; flex-wrap: wrap;
+}
+.search-box, .filter-box {
+  padding: 10px 16px; border: 1px solid var(--card-border); border-radius: var(--radius-sm);
+  background: var(--white); color: var(--text-dark); font-family: var(--font-main); outline: none; transition: var(--transition);
+}
+.search-box:focus, .filter-box:focus { border-color: var(--sky); box-shadow: 0 0 0 3px rgba(0,191,255,0.15); }
+.search-box { flex-grow: 1; max-width: 300px; }
+
+.table-wrapper { overflow-x: auto; border-radius: var(--radius-sm); border: 1px solid var(--card-border); }
+table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.9rem; }
+thead { background: rgba(0,191,255,0.08); }
+th { padding: 14px 16px; font-weight: 700; color: var(--text-mid); white-space: nowrap; }
+td { padding: 14px 16px; border-bottom: 1px solid var(--card-border); color: var(--text-dark); font-weight: 500; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(0,191,255,0.03); }
+.td-id { font-family: var(--font-mono); font-weight: 700; color: var(--sky-dark); }
+.score-badge {
+  display: inline-block; padding: 4px 10px; border-radius: 12px; font-weight: 700; font-size: 0.8rem;
+}
+.score-high { background: rgba(0,200,120,0.15); color: var(--success); }
+.score-mid { background: rgba(255,176,32,0.15); color: var(--warning); }
+.score-low { background: rgba(255,107,107,0.15); color: var(--danger); }
+
+/* ─── Skeleton Loader ───────────────────────────────────────── */
+.skeleton { background: #e2e8f0; border-radius: 4px; overflow: hidden; position: relative; }
+.skeleton::after {
+  content: ''; position: absolute; inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.5), transparent);
+  animation: shimmer 1.5s infinite;
+}
+@keyframes shimmer { 0% { transform: translateX(100%); } 100% { transform: translateX(-100%); } }
+.loader-overlay {
+  position: absolute; inset: 0; background: rgba(244,251,255,0.8); backdrop-filter: blur(4px);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; z-index: 10; gap: 16px;
+  transition: opacity 0.5s;
+}
+.spinner {
+  width: 40px; height: 40px; border: 4px solid rgba(0,191,255,0.2);
+  border-top-color: var(--sky); border-radius: 50%; animation: spin 1s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .charts-grid { grid-template-columns: 1fr; }
+  .table-controls { flex-direction: column; align-items: stretch; }
+  .search-box { max-width: 100%; }
+}
+</style>
+</head>
+<body>
+
+<div class="dashboard-container">
+  
+  <header>
+    <div class="brand">
+      <div class="brand-icon">📊</div>
+      لوحة الإحصائيات - التجزئة الديناميكية
+    </div>
+    <div class="header-actions">
+      <div style="font-size: 0.85rem; color: var(--text-soft);" id="last-update">جاري التحميل...</div>
+      <button class="btn-refresh" onclick="fetchData()"><span style="font-size: 1.2rem;">🔄</span> تحديث</button>
+    </div>
+  </header>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid" id="kpi-container">
+    <div class="glass-card kpi-card">
+      <div class="kpi-title">إجمالي الطلاب</div>
+      <div class="kpi-value skeleton" id="kpi-total" style="width:60px; height:36px;"></div>
+      <div class="kpi-sub">شاركوا في التحدي</div>
+    </div>
+    <div class="glass-card kpi-card">
+      <div class="kpi-title">متوسط الدرجات</div>
+      <div class="kpi-value skeleton" id="kpi-avg" style="width:80px; height:36px;"></div>
+      <div class="kpi-sub">من أصل 3 نقاط</div>
+    </div>
+    <div class="glass-card kpi-card">
+      <div class="kpi-title">نسبة النجاح</div>
+      <div class="kpi-value skeleton" id="kpi-success" style="width:100px; height:36px;"></div>
+      <div class="kpi-sub"><span class="kpi-trend trend-good" id="kpi-success-trend">...</span> درجة ≥ 2</div>
+    </div>
+    <div class="glass-card kpi-card">
+      <div class="kpi-title">أعلى / أقل درجة</div>
+      <div class="kpi-value skeleton" id="kpi-range" style="width:90px; height:36px;"></div>
+      <div class="kpi-sub">النطاق التقييمي للطلاب</div>
+    </div>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <!-- Distribution -->
+    <div class="glass-card">
+      <div class="card-header">توزيع الدرجات 📈</div>
+      <div class="bar-chart-container" id="chart-distribution">
+        <!-- Bars will be injected here -->
+      </div>
+    </div>
+
+    <!-- Accuracy -->
+    <div class="glass-card">
+      <div class="card-header">دقة الأسئلة (الصعوبة) 🎯</div>
+      <div class="accuracy-list" id="chart-accuracy">
+        <!-- Progress will be injected here -->
+      </div>
+    </div>
+
+    <!-- Submissions Over Time -->
+    <div class="glass-card">
+      <div class="card-header">التفاعل الزمني ⏳</div>
+      <div class="line-chart-container">
+        <svg class="line-chart" preserveAspectRatio="none" viewBox="0 0 100 50">
+          <polygon class="line-fill" id="time-fill" points="0,50 100,50" />
+          <polyline class="line-path" id="time-path" points="" />
+          <g id="time-points"></g>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Smart Insights -->
+    <div class="glass-card">
+      <div class="card-header">رؤى ذكية (AI Insights) 🧠</div>
+      <div class="insights-list" id="smart-insights">
+        <div class="skeleton" style="height:40px; border-radius:8px; width:100%;"></div>
+        <div class="skeleton" style="height:40px; border-radius:8px; width:90%;"></div>
+        <div class="skeleton" style="height:40px; border-radius:8px; width:95%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="glass-card">
+    <div class="card-header">سجل أداء الطلاب 📋</div>
+    
+    <div class="table-controls">
+      <input type="text" id="search-input" class="search-box" placeholder="🔍 ابحث برقم الطالب (ST-XXXX)..." />
+      <select id="filter-score" class="filter-box">
+        <option value="all">جميع الدرجات</option>
+        <option value="3">الدرجة النهائية (3)</option>
+        <option value="2">درجة جيدة (2)</option>
+        <option value="1">يحتاج تحسين (1)</option>
+        <option value="0">ضعيف (0)</option>
+      </select>
+    </div>
+
+    <div class="table-wrapper">
+      <table id="students-table">
+        <thead>
+          <tr>
+            <th>رقم الطالب (ID)</th>
+            <th>الوقت</th>
+            <th>الدرجة</th>
+            <th>السؤال الأول (إمكانية الدخول)</th>
+            <th>السؤال الثاني (الفراغات المبعثرة)</th>
+            <th>السؤال الثالث (الميزة الرئيسية)</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <!-- Rows -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Global Loader -->
+<div class="loader-overlay" id="global-loader">
+  <div class="spinner"></div>
+  <h3 style="color:var(--sky-dark);">جاري استيراد البيانات من Google Sheets...</h3>
+</div>
+
+<script>
+// ==========================================
+// 1. Config & State
+// ==========================================
+// رابط Sheets الخاص بالتجزئة الديناميكية
+const SHEET_JSON_URL = 'https://docs.google.com/spreadsheets/d/1CKwUh6pOBN9h3LAWNkqbANnSW3k6sK3ncIvUOTNL-jQ/gviz/tq?tqx=out:json';
+
+let rawData = [];
+let filteredData = [];
+
+// ==========================================
+// 2. Fetch & Parse Logic
+// ==========================================
+async function fetchData() {
+  const loader = document.getElementById('global-loader');
+  loader.style.display = 'flex';
+  loader.style.opacity = '1';
+
+  try {
+    const response = await fetch(SHEET_JSON_URL);
+    const text = await response.text();
+    
+    // Safely extract JSON from GViz format
+    const jsonMatch = text.match(/google\.visualization\.Query\.setResponse\(([\s\S]*)\);/);
+    if (!jsonMatch) throw new Error("Invalid response format");
+    
+    const json = JSON.parse(jsonMatch[1]);
+    
+    processData(json);
+    renderDashboard();
+    
+    document.getElementById('last-update').textContent = 'آخر تحديث: ' + new Date().toLocaleTimeString('ar-EG');
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    alert("حدث خطأ أثناء جلب البيانات. تأكد من نشر جدول Google Sheets على الويب وعدم وجود قيود مشاركة.");
+  } finally {
+    loader.style.opacity = '0';
+    setTimeout(() => loader.style.display = 'none', 500);
+  }
+}
+
+// Map Google Sheet rows to our object format using precise column headers
+function processData(json) {
+  const cols = json.table.cols || [];
+  
+  // Default indices (fallback)
+  let tsColIdx = 0;
+  let idColIdx = 1;
+  let q1Idx = 2;
+  let q2Idx = 3;
+  let q3Idx = 4;
+  let scoreColIdx = 5;
+
+  // Dynamically map based on column headers to guarantee correct parsing
+  cols.forEach((col, idx) => {
+    if (!col || !col.label) return;
+    const label = col.label.toLowerCase();
+    if (label.includes('student_id')) idColIdx = idx;
+    else if (label.includes('q1')) q1Idx = idx;
+    else if (label.includes('q2')) q2Idx = idx;
+    else if (label.includes('q3')) q3Idx = idx;
+    else if (label.includes('score') || label.includes('نتيجة')) scoreColIdx = idx;
+    else if (label.includes('طابع') || label.includes('time')) tsColIdx = idx;
+  });
+
+  rawData = json.table.rows.map(row => {
+    const c = row.c;
+    if(!c) return null;
+
+    // Helper to safely get value
+    const getVal = (index) => (c[index] && c[index].v !== null) ? (c[index].f || c[index].v || '') : '';
+
+    const rawScoreStr = String(getVal(scoreColIdx));
+    // Normalize score (e.g. "3 من 3" -> 3)
+    const scoreMatch = rawScoreStr.match(/\d+/);
+    const scoreNum = scoreMatch ? parseInt(scoreMatch[0], 10) : 0;
+
+    // Parse GViz Date string: e.g. "Date(2026,3,20,10,36,39)"
+    let dateObj = new Date();
+    const rawDate = c[tsColIdx] ? c[tsColIdx].v : null;
+    if (typeof rawDate === 'string' && rawDate.startsWith('Date(')) {
+      const parts = rawDate.match(/\d+/g);
+      if (parts && parts.length >= 3) {
+        // Month is 0-indexed in JS
+        dateObj = new Date(parts[0], parts[1], parts[2], parts[3] || 0, parts[4] || 0, parts[5] || 0);
+      }
+    } else if (rawDate) {
+      dateObj = new Date(rawDate);
+    }
+
+    return {
+      timestamp: getVal(tsColIdx),
+      studentId: getVal(idColIdx) || 'مجهول',
+      score: scoreNum,
+      q1: getVal(q1Idx) || 'لم يُجب',
+      q2: getVal(q2Idx) || 'لم يُجب',
+      q3: getVal(q3Idx) || 'لم يُجب',
+      dateObj: dateObj
+    };
+  }).filter(Boolean);
+
+  // Sort by newest first
+  rawData.sort((a,b) => b.dateObj - a.dateObj);
+  filteredData = [...rawData];
+}
+
+// ==========================================
+// 3. Render Functions
+// ==========================================
+function renderDashboard() {
+  if(rawData.length === 0) return;
+
+  renderKPIs();
+  renderDistribution();
+  renderAccuracy();
+  renderTimeline();
+  generateInsights();
+  renderTable();
+}
+
+// --- KPIs ---
+function renderKPIs() {
+  const total = filteredData.length;
+  if(total === 0) return;
+
+  const scores = filteredData.map(d => d.score);
+  const avg = (scores.reduce((a,b)=>a+b, 0) / total).toFixed(1);
+  const max = Math.max(...scores);
+  const min = Math.min(...scores);
+  const successCount = scores.filter(s => s >= 2).length;
+  const successRate = Math.round((successCount / total) * 100);
+
+  setKPI('kpi-total', total);
+  setKPI('kpi-avg', avg);
+  setKPI('kpi-success', successRate + '%');
+  setKPI('kpi-range', `${max} / ${min}`);
+
+  const trendBadge = document.getElementById('kpi-success-trend');
+  if(successRate >= 50) {
+    trendBadge.className = 'kpi-trend trend-good';
+    trendBadge.textContent = 'أداء ممتاز';
+  } else {
+    trendBadge.className = 'kpi-trend trend-bad';
+    trendBadge.textContent = 'يحتاج دعم';
+  }
+}
+
+function setKPI(id, val) {
+  const el = document.getElementById(id);
+  el.classList.remove('skeleton');
+  el.textContent = val;
+  el.style.width = 'auto';
+}
+
+// --- Bar Chart (Score Distribution) ---
+function renderDistribution() {
+  const container = document.getElementById('chart-distribution');
+  container.innerHTML = '';
+
+  const counts = {0:0, 1:0, 2:0, 3:0};
+  filteredData.forEach(d => { if(counts[d.score] !== undefined) counts[d.score]++; });
+  
+  const maxCount = Math.max(...Object.values(counts), 1); // prevent division by zero
+
+  [0, 1, 2, 3].forEach(score => {
+    const count = counts[score];
+    const pct = Math.round((count / maxCount) * 100);
+    
+    container.innerHTML += `
+      <div class="bar-col">
+        <div class="bar-track">
+          <div class="bar-val-label">${count}</div>
+          <div class="bar-fill" style="height: ${pct}%;"></div>
+        </div>
+        <div class="bar-label">${score} نقاط</div>
+      </div>
+    `;
+  });
+}
+
+// --- Progress Chart (Question Accuracy) ---
+function renderAccuracy() {
+  const container = document.getElementById('chart-accuracy');
+  container.innerHTML = '';
+  
+  const total = filteredData.length;
+  if(total === 0) return;
+
+  // Smart Accuracy Deduction: Assume the answer chosen by students who got 3/3 is correct.
+  const perfectStudents = filteredData.filter(d => d.score === 3);
+  
+  const getAcc = (qKey) => {
+    let correctAns = "";
+    if (perfectStudents.length > 0) {
+      const ansFreq = {};
+      perfectStudents.forEach(s => { ansFreq[s[qKey]] = (ansFreq[s[qKey]] || 0) + 1; });
+      correctAns = Object.keys(ansFreq).reduce((a, b) => ansFreq[a] > ansFreq[b] ? a : b);
+    }
+
+    let correctCount = 0;
+    if (correctAns) {
+      correctCount = filteredData.filter(d => d[qKey] === correctAns).length;
+    } else {
+      return Math.round((filteredData.reduce((acc, d) => acc + d.score, 0) / (total * 3)) * 100);
+    }
+    
+    return Math.round((correctCount / total) * 100);
+  };
+
+  // تخصيص عناوين الأسئلة لدرس التجزئة الديناميكية
+  const accData = [
+    { label: 'السؤال الأول (إمكانية الدخول - المساحة المتصلة)', pct: getAcc('q1') },
+    { label: 'السؤال الثاني (الفراغات الخارجية المبعثرة)', pct: getAcc('q2') },
+    { label: 'السؤال الثالث (الميزة الرئيسية للديناميكية)', pct: getAcc('q3') }
+  ];
+
+  accData.forEach(item => {
+    const isBad = item.pct < 50;
+    const color = isBad ? 'var(--danger)' : 'var(--success)';
+    container.innerHTML += `
+      <div class="acc-item">
+        <div class="acc-header">
+          <span>${item.label}</span>
+          <span style="color:${color}">${item.pct}% صحيحة</span>
+        </div>
+        <div class="acc-track">
+          <div class="acc-fill" style="width: ${item.pct}%; background:${color};"></div>
+        </div>
+      </div>
+    `;
+  });
+}
+
+// --- Line Chart (Timeline) ---
+function renderTimeline() {
+  const data = [...filteredData].sort((a,b) => a.dateObj - b.dateObj);
+  if(data.length < 2) return;
+
+  const maxPoints = 20;
+  const step = Math.ceil(data.length / maxPoints);
+  
+  const points = [];
+  for(let i=0; i<data.length; i+=step) {
+    const chunk = data.slice(i, i+step);
+    const avgScore = chunk.reduce((acc, d) => acc + d.score, 0) / chunk.length;
+    points.push(avgScore);
+  }
+
+  const mapY = (val) => 50 - ((val / 3) * 40); 
+  
+  let polylineStr = '';
+  let polygonStr = `0,50 `;
+  let circlesHtml = '';
+
+  points.forEach((val, i) => {
+    const x = (i / (points.length - 1)) * 100;
+    const y = mapY(val);
+    const pointStr = `${x.toFixed(1)},${y.toFixed(1)}`;
+    
+    polylineStr += pointStr + ' ';
+    polygonStr += pointStr + ' ';
+    
+    circlesHtml += `<circle class="line-point" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3" title="متوسط: ${val.toFixed(1)}">
+      <title>متوسط الدرجات: ${val.toFixed(1)}</title>
+    </circle>`;
+  });
+  
+  polygonStr += `100,50`;
+
+  document.getElementById('time-path').setAttribute('points', polylineStr);
+  document.getElementById('time-fill').setAttribute('points', polygonStr);
+  document.getElementById('time-points').innerHTML = circlesHtml;
+}
+
+// --- Smart Insights ---
+function generateInsights() {
+  const container = document.getElementById('smart-insights');
+  container.innerHTML = '';
+  
+  if (filteredData.length === 0) return;
+
+  const insights = [];
+  const scores = filteredData.map(d => d.score);
+  const avg = (scores.reduce((a,b)=>a+b, 0) / scores.length);
+  
+  // 1. General Performance & Dynamic Partitions concepts
+  if (avg >= 2.5) {
+    insights.push({ icon: '🌟', text: `أداء استثنائي! متوسط الطلاب <span>${avg.toFixed(1)}</span>، مما يدل على استيعاب كامل لمفهوم التجزئة الديناميكية.` });
+  } else if (avg >= 1.5) {
+    insights.push({ icon: '👍', text: `مستوى جيد (متوسط <span>${avg.toFixed(1)}</span>)، لكن مفهوم "الفراغات الخارجية المبعثرة" قد يحتاج لمراجعة بسيطة.` });
+  } else {
+    insights.push({ icon: '⚠️', text: `انتباه: الأداء العام ضعيف. يوصى بإعادة شرح لماذا البرامج تحتاج لمساحة <span>متصلة ومترابطة</span>.` });
+  }
+
+  // 2. Score Concentration
+  const counts = {0:0, 1:0, 2:0, 3:0};
+  scores.forEach(s => counts[s]++);
+  const maxScoreKey = Object.keys(counts).reduce((a, b) => counts[a] > counts[b] ? a : b);
+  insights.push({ icon: '📊', text: `النسبة الأكبر من الطلاب (<span>${counts[maxScoreKey]} طالب</span>) حصلوا على <span>${maxScoreKey} من 3</span>.` });
+
+  // 3. Time Insight
+  const latest = filteredData[0];
+  insights.push({ icon: '⏱️', text: `آخر تفاعل تم بواسطة الطالب <span>${latest.studentId}</span> وحصل على <span>${latest.score}/3</span>.` });
+
+  insights.forEach(ins => {
+    container.innerHTML += `
+      <div class="insight-item">
+        <div class="insight-icon">${ins.icon}</div>
+        <div class="insight-text">${ins.text}</div>
+      </div>
+    `;
+  });
+}
+
+// --- Table & Filters ---
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = '';
+
+  if(filteredData.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-soft);">لا توجد بيانات مطابقة للبحث</td></tr>`;
+    return;
+  }
+
+  filteredData.forEach(d => {
+    let badgeClass = 'score-low';
+    if(d.score === 3) badgeClass = 'score-high';
+    else if(d.score === 2) badgeClass = 'score-mid';
+
+    // Format date beautifully
+    const dStr = d.dateObj.toLocaleString('ar-EG', { month:'short', day:'numeric', hour:'numeric', minute:'2-digit'});
+
+    // Truncate long answers
+    const trunc = (str) => str.length > 40 ? str.substring(0, 38) + '...' : str;
+
+    tbody.innerHTML += `
+      <tr>
+        <td class="td-id">${d.studentId}</td>
+        <td style="font-size:0.8rem; color:var(--text-soft);">${dStr}</td>
+        <td><span class="score-badge ${badgeClass}">${d.score} / 3</span></td>
+        <td title="${d.q1}">${trunc(d.q1)}</td>
+        <td title="${d.q2}">${trunc(d.q2)}</td>
+        <td title="${d.q3}">${trunc(d.q3)}</td>
+      </tr>
+    `;
+  });
+}
+
+// Event Listeners for Filters
+document.getElementById('search-input').addEventListener('input', (e) => {
+  applyFilters();
+});
+
+document.getElementById('filter-score').addEventListener('change', (e) => {
+  applyFilters();
+});
+
+function applyFilters() {
+  const searchTxt = document.getElementById('search-input').value.toLowerCase();
+  const scoreFilter = document.getElementById('filter-score').value;
+
+  filteredData = rawData.filter(d => {
+    const matchesSearch = d.studentId.toLowerCase().includes(searchTxt);
+    const matchesScore = scoreFilter === 'all' || d.score.toString() === scoreFilter;
+    return matchesSearch && matchesScore;
+  });
+
+  renderDashboard();
+}
+
+// ==========================================
+// 4. Initialization
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  fetchData();
+});
+</script>
+</body>
+</html>

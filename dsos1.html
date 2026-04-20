@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحليل الأداء التعليمي | Analytics Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Cairo:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<style>
+/* ─── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --sky:        #00BFFF;
+  --sky-dark:   #0090CC;
+  --sky-light:  #7FDFFF;
+  --sky-pale:   #E0F7FF;
+  --white:      #FFFFFF;
+  --bg-color:   #F4FBFF;
+  --text-dark:  #0A1628;
+  --text-mid:   #2D4A6B;
+  --text-soft:  #5A7FA0;
+  
+  --card-bg:    rgba(255, 255, 255, 0.75);
+  --card-border:rgba(0, 191, 255, 0.2);
+  --shadow-sky: 0 8px 32px rgba(0, 191, 255, 0.12);
+  --shadow-sm:  0 4px 16px rgba(0, 100, 180, 0.08);
+  
+  --radius-lg:  20px;
+  --radius-md:  14px;
+  --radius-sm:  8px;
+  
+  --success:    #00C878;
+  --danger:     #FF6B6B;
+  --warning:    #FFB020;
+  
+  --font-main:  'Cairo', 'Tajawal', sans-serif;
+  --font-mono:  'JetBrains Mono', monospace;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ─── Reset & Base ──────────────────────────────────────────── */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: var(--font-main);
+  background: var(--bg-color);
+  color: var(--text-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ─── Background Elements ───────────────────────────────────── */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -2;
+  background: radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,191,255,0.12) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 90% 80%, rgba(0,144,204,0.08) 0%, transparent 60%);
+}
+
+/* ─── Layout ────────────────────────────────────────────────── */
+.dashboard-container {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* ─── Header ────────────────────────────────────────────────── */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+}
+.header-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--sky-dark);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.header-title .icon {
+  width: 40px; height: 40px;
+  background: linear-gradient(135deg, var(--sky-dark), var(--sky));
+  color: white; border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem;
+}
+.header-actions {
+  display: flex; gap: 12px;
+}
+.btn {
+  padding: 10px 20px; border-radius: var(--radius-sm);
+  border: none; font-family: var(--font-main); font-weight: 700;
+  cursor: pointer; transition: var(--transition);
+  display: inline-flex; align-items: center; gap: 8px;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--sky-dark), var(--sky));
+  color: white; box-shadow: 0 4px 15px rgba(0,191,255,0.3);
+}
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,191,255,0.4); }
+
+/* ─── KPI Cards ─────────────────────────────────────────────── */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 20px;
+}
+.kpi-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-md);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; gap: 8px;
+  position: relative; overflow: hidden;
+}
+.kpi-card::after {
+  content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%;
+  background: var(--sky); border-radius: 4px 0 0 4px;
+}
+.kpi-title { font-size: 0.9rem; color: var(--text-soft); font-weight: 600; }
+.kpi-value { font-size: 2rem; font-weight: 900; color: var(--text-dark); font-family: var(--font-mono); }
+.kpi-sub { font-size: 0.8rem; color: var(--success); font-weight: 700; }
+
+/* ─── Skeleton Loading ──────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, rgba(0,191,255,0.05) 25%, rgba(0,191,255,0.15) 50%, rgba(0,191,255,0.05) 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+  border-radius: 4px; color: transparent !important; pointer-events: none;
+}
+@keyframes loading { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* ─── Smart Insights ────────────────────────────────────────── */
+.insights-card {
+  background: linear-gradient(135deg, rgba(0,191,255,0.08), rgba(0,144,204,0.04));
+  border: 1px solid rgba(0,191,255,0.3);
+  border-radius: var(--radius-md);
+  padding: 20px 24px;
+}
+.insights-title { font-size: 1.1rem; font-weight: 800; color: var(--sky-dark); margin-bottom: 12px; display: flex; align-items: center; gap: 8px; }
+.insights-list { list-style: none; display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.insights-list li {
+  display: flex; align-items: center; gap: 10px; font-size: 0.95rem; font-weight: 600; color: var(--text-mid);
+}
+.insights-list li::before { content: '💡'; font-size: 1.2rem; }
+
+/* ─── Charts Section ────────────────────────────────────────── */
+.charts-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 24px;
+}
+.chart-card {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border); border-radius: var(--radius-md);
+  padding: 24px; box-shadow: var(--shadow-sm);
+  display: flex; flex-direction: column; min-height: 280px;
+}
+.chart-header { font-size: 1.1rem; font-weight: 800; color: var(--text-dark); margin-bottom: 20px; }
+
+/* Vanilla Bar Chart */
+.bar-chart-container {
+  flex: 1; display: flex; align-items: flex-end; justify-content: space-around;
+  padding-bottom: 24px; border-bottom: 1px solid rgba(0,191,255,0.2); position: relative;
+}
+.bar-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; width: 40px; }
+.bar {
+  width: 100%; background: linear-gradient(180deg, var(--sky), var(--sky-dark));
+  border-radius: 6px 6px 0 0; transition: height 1s ease;
+  box-shadow: 0 4px 10px rgba(0,191,255,0.2); position: relative;
+}
+.bar-val { position: absolute; top: -24px; left: 50%; transform: translateX(-50%); font-weight: 800; font-family: var(--font-mono); color: var(--sky-dark); }
+.bar-label { font-size: 0.85rem; font-weight: 700; color: var(--text-soft); }
+
+/* Vanilla Progress Chart */
+.acc-chart-container { display: flex; flex-direction: column; gap: 16px; flex: 1; justify-content: center; }
+.acc-row { display: flex; flex-direction: column; gap: 6px; }
+.acc-labels { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 700; color: var(--text-mid); }
+.acc-bar-bg { width: 100%; height: 12px; background: rgba(255,107,107,0.15); border-radius: 6px; overflow: hidden; display: flex; }
+.acc-bar-fill { height: 100%; background: var(--success); transition: width 1s ease; }
+
+/* Vanilla Line Chart (SVG) */
+.line-chart-container { flex: 1; position: relative; width: 100%; height: 100%; }
+.line-chart-container svg { width: 100%; height: 100%; overflow: visible; }
+.line-path { fill: none; stroke: var(--sky); stroke-width: 3; stroke-linecap: round; stroke-linejoin: round; }
+.line-area { fill: rgba(0,191,255,0.1); }
+
+/* ─── Table Section ─────────────────────────────────────────── */
+.table-section {
+  background: var(--card-bg); backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border); border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm); overflow: hidden;
+}
+.table-header {
+  padding: 20px 24px; border-bottom: 1px solid var(--card-border);
+  display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;
+}
+.table-filters { display: flex; gap: 12px; }
+.filter-input, .filter-select {
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--card-border); background: white;
+  font-family: var(--font-main); font-size: 0.9rem; color: var(--text-dark);
+  outline: none; transition: border 0.3s;
+}
+.filter-input:focus, .filter-select:focus { border-color: var(--sky); }
+
+.table-responsive { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; text-align: right; }
+th { background: rgba(0,191,255,0.05); padding: 16px 24px; font-weight: 800; color: var(--text-mid); font-size: 0.9rem; border-bottom: 2px solid var(--card-border); cursor: pointer; user-select: none; }
+th:hover { background: rgba(0,191,255,0.1); }
+td { padding: 16px 24px; font-size: 0.95rem; color: var(--text-dark); border-bottom: 1px solid rgba(0,191,255,0.1); }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: rgba(0,191,255,0.02); }
+
+.score-badge {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: 4px 12px; border-radius: 20px; font-weight: 800; font-family: var(--font-mono); font-size: 0.85rem;
+}
+.score-high { background: rgba(0,200,120,0.15); color: #007A4A; }
+.score-mid { background: rgba(255,176,32,0.15); color: #B27700; }
+.score-low { background: rgba(255,107,107,0.15); color: #C0392B; }
+
+.id-cell { font-family: var(--font-mono); font-weight: 700; color: var(--sky-dark); }
+.date-cell { color: var(--text-soft); font-size: 0.85rem; }
+
+.empty-state { text-align: center; padding: 48px; color: var(--text-soft); font-weight: 600; display: none; }
+
+/* ─── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .header { flex-direction: column; gap: 16px; align-items: flex-start; }
+  .table-header { flex-direction: column; align-items: stretch; }
+  .table-filters { flex-direction: column; }
+}
+</style>
+</head>
+<body>
+
+<div class="dashboard-container">
+  
+  <!-- Header -->
+  <header class="header">
+    <div class="header-title">
+      <div class="icon">📊</div>
+      لوحة تحليل الأداء التعليمي
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-primary" onclick="initDashboard()" id="refreshBtn">
+        🔄 تحديث البيانات
+      </button>
+    </div>
+  </header>
+
+  <!-- KPI Grid -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-title">إجمالي الطلاب</div>
+      <div class="kpi-value skeleton" id="kpi-total">0</div>
+      <div class="kpi-sub" id="kpi-total-sub">مشاركة مسجلة</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">متوسط الدرجات</div>
+      <div class="kpi-value skeleton" id="kpi-avg">0.0</div>
+      <div class="kpi-sub" style="color:var(--sky-dark);">من أصل 3.0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">أعلى درجة</div>
+      <div class="kpi-value skeleton" id="kpi-high">0</div>
+      <div class="kpi-sub">طالب/طلاب حققوها</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-title">نسبة النجاح (≥ 2)</div>
+      <div class="kpi-value skeleton" id="kpi-success">0%</div>
+      <div class="kpi-sub" id="kpi-success-sub" style="color:var(--text-soft);">أداء جيد</div>
+    </div>
+  </div>
+
+  <!-- Smart Insights -->
+  <div class="insights-card">
+    <div class="insights-title">🤖 استنتاجات ذكية تلقائية</div>
+    <ul class="insights-list" id="insights-container">
+      <li class="skeleton">جاري تحليل البيانات واستخراج الاستنتاجات...</li>
+      <li class="skeleton">جاري تحليل البيانات واستخراج الاستنتاجات...</li>
+      <li class="skeleton">جاري تحليل البيانات واستخراج الاستنتاجات...</li>
+    </ul>
+  </div>
+
+  <!-- Charts -->
+  <div class="charts-grid">
+    <!-- Score Distribution -->
+    <div class="chart-card">
+      <div class="chart-header">📈 توزيع الدرجات</div>
+      <div class="bar-chart-container" id="bar-chart">
+        <!-- Bars generated by JS -->
+      </div>
+    </div>
+
+    <!-- Question Accuracy -->
+    <div class="chart-card">
+      <div class="chart-header">🎯 دقة الإجابات لكل سؤال</div>
+      <div class="acc-chart-container" id="acc-chart">
+        <!-- Progress generated by JS -->
+      </div>
+    </div>
+
+    <!-- Timeline -->
+    <div class="chart-card">
+      <div class="chart-header">📅 المشاركات عبر الزمن</div>
+      <div class="line-chart-container" id="line-chart">
+        <!-- SVG generated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Data Table -->
+  <div class="table-section">
+    <div class="table-header">
+      <div class="chart-header" style="margin:0;">📋 سجل أداء الطلاب</div>
+      <div class="table-filters">
+        <input type="text" class="filter-input" id="searchId" placeholder="🔍 بحث بمعرف الطالب (ST-)..." onkeyup="filterTable()">
+        <select class="filter-select" id="filterScore" onchange="filterTable()">
+          <option value="all">جميع الدرجات</option>
+          <option value="3">الدرجة النهائية (3)</option>
+          <option value="2">جيد (2)</option>
+          <option value="1">ضعيف (1)</option>
+          <option value="0">صفر (0)</option>
+        </select>
+      </div>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>معرف الطالب</th>
+            <th>الوقت والتاريخ</th>
+            <th>سؤال 1</th>
+            <th>سؤال 2</th>
+            <th>سؤال 3</th>
+            <th onclick="sortTable()" title="اضغط للترتيب">الدرجة ↕️</th>
+          </tr>
+        </thead>
+        <tbody id="table-body">
+          <tr><td colspan="6" class="skeleton" style="padding:24px;">جاري تحميل البيانات...</td></tr>
+        </tbody>
+      </table>
+      <div class="empty-state" id="empty-state">لا توجد نتائج مطابقة للبحث 🕵️‍♂️</div>
+      <div class="empty-state" id="error-state" style="color:var(--danger);">⚠️ تعذر جلب البيانات. تأكد من أن ملف Google Sheet متاح للنشر على الويب.</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/**
+ * ─── Configuration & State ──────────────────────────────────────
+ */
+const SHEET_URL = 'https://docs.google.com/spreadsheets/d/1tmu8JdyS2lcYnx6TAEjWVdW-ypwCw2vy1CAFOO7tiNk/gviz/tq?tqx=out:json';
+
+// Define keywords that indicate correct answers based on the presentation module
+const CORRECT_KEYWORDS = {
+  q1: 'الأمن',       // الأمن والحماية (Protection)
+  q2: 'التبديل',     // عملية التبديل (Swapping)
+  q3: 'تحرير'        // تحرير الذاكرة وتسجيل الخروج (Deallocation)
+};
+
+let rawData = [];
+let filteredData = [];
+let sortDesc = true;
+
+/**
+ * ─── Initialization & Fetching ──────────────────────────────────
+ */
+async function initDashboard() {
+  setLoadingState(true);
+  
+  try {
+    const response = await fetch(SHEET_URL);
+    const text = await response.text();
+    
+    // Parse Google Visualization JSON
+    const jsonStr = text.substring(47).slice(0, -2);
+    const data = JSON.parse(jsonStr);
+    
+    processData(data.table);
+    
+    renderKPIs();
+    renderInsights();
+    renderCharts();
+    renderTable();
+    
+    setLoadingState(false);
+  } catch (error) {
+    console.error("Error fetching data:", error);
+    showErrorState();
+  }
+}
+
+/**
+ * ─── Data Processing ────────────────────────────────────────────
+ */
+function processData(table) {
+  rawData = [];
+  
+  // Rows mapping
+  table.rows.forEach(row => {
+    if(!row.c[0]) return; // Skip empty rows
+    
+    // Parse date: "Date(2023,10,5,14,30,0)" -> JS Date
+    let dateObj = new Date();
+    const dateVal = row.c[0].v;
+    if(typeof dateVal === 'string') {
+      const match = dateVal.match(/Date\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+),\s*(\d+),\s*(\d+))?\)/);
+      if (match) {
+        dateObj = new Date(match[1], match[2], match[3], match[4]||0, match[5]||0, match[6]||0);
+      }
+    }
+
+    // Extract raw string values
+    const sId = row.c[1] ? row.c[1].v : 'Unknown';
+    const q1 = row.c[2] ? row.c[2].v : '';
+    const q2 = row.c[3] ? row.c[3].v : '';
+    const q3 = row.c[4] ? row.c[4].v : '';
+    
+    // Parse score from format "2 من 3"
+    let scoreNum = 0;
+    if(row.c[5] && row.c[5].v) {
+      const match = String(row.c[5].v).match(/\d+/);
+      if(match) scoreNum = parseInt(match[0]);
+    }
+    
+    rawData.push({
+      timestamp: dateObj,
+      dateFormatted: dateObj.toLocaleString('ar-EG', { year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute:'2-digit' }),
+      studentId: sId,
+      q1: q1,
+      q2: q2,
+      q3: q3,
+      score: scoreNum
+    });
+  });
+  
+  // Sort by newest first
+  rawData.sort((a, b) => b.timestamp - a.timestamp);
+  filteredData = [...rawData];
+}
+
+/**
+ * ─── Renderers ──────────────────────────────────────────────────
+ */
+function renderKPIs() {
+  const total = filteredData.length;
+  if(total === 0) return;
+
+  const totalScore = filteredData.reduce((acc, curr) => acc + curr.score, 0);
+  const avg = (totalScore / total).toFixed(1);
+  
+  const highest = Math.max(...filteredData.map(d => d.score));
+  const topPerformers = filteredData.filter(d => d.score === highest).length;
+  
+  const successCount = filteredData.filter(d => d.score >= 2).length;
+  const successRate = Math.round((successCount / total) * 100);
+
+  updateEl('kpi-total', total);
+  updateEl('kpi-avg', avg);
+  updateEl('kpi-high', highest);
+  updateEl('kpi-success', `${successRate}%`);
+  
+  document.querySelector('#kpi-high + .kpi-sub').textContent = `${topPerformers} طالب حققوها`;
+}
+
+function renderInsights() {
+  if(filteredData.length === 0) return;
+
+  const total = filteredData.length;
+  const avg = (filteredData.reduce((acc, curr) => acc + curr.score, 0) / total).toFixed(1);
+  
+  // Q Accuracy Analysis
+  let q1C=0, q2C=0, q3C=0;
+  filteredData.forEach(d => {
+    if(String(d.q1).includes(CORRECT_KEYWORDS.q1)) q1C++;
+    if(String(d.q2).includes(CORRECT_KEYWORDS.q2)) q2C++;
+    if(String(d.q3).includes(CORRECT_KEYWORDS.q3)) q3C++;
+  });
+
+  const accuracies = [
+    { num: 1, rate: q1C/total },
+    { num: 2, rate: q2C/total },
+    { num: 3, rate: q3C/total }
+  ];
+  accuracies.sort((a, b) => a.rate - b.rate); // Hardest first (lowest correct rate)
+
+  const hardestQ = accuracies[0];
+  const easiestQ = accuracies[2];
+
+  const insights = [
+    `متوسط أداء الدفعة هو <strong>${avg}/3</strong> نقطة.`,
+    `السؤال <strong>رقم ${hardestQ.num}</strong> هو الأكثر صعوبة (نسبة خطأ ${Math.round((1-hardestQ.rate)*100)}%).`,
+    `السؤال <strong>رقم ${easiestQ.num}</strong> هو الأسهل (نسبة إجابة صحيحة ${Math.round(easiestQ.rate*100)}%).`,
+    `نسبة النجاح العامة (الحصول على 2 فما فوق) بلغت <strong>${Math.round((filteredData.filter(d=>d.score>=2).length/total)*100)}%</strong>.`
+  ];
+
+  const container = document.getElementById('insights-container');
+  container.innerHTML = insights.map(text => `<li>${text}</li>`).join('');
+}
+
+function renderCharts() {
+  if(filteredData.length === 0) return;
+
+  // 1. Bar Chart (Score Distribution)
+  const scoresCount = {0:0, 1:0, 2:0, 3:0};
+  let maxCount = 0;
+  filteredData.forEach(d => {
+    scoresCount[d.score]++;
+    if(scoresCount[d.score] > maxCount) maxCount = scoresCount[d.score];
+  });
+
+  const barContainer = document.getElementById('bar-chart');
+  barContainer.innerHTML = '';
+  [0, 1, 2, 3].forEach(score => {
+    const count = scoresCount[score];
+    const heightPct = maxCount === 0 ? 0 : (count / maxCount) * 100;
+    
+    barContainer.innerHTML += `
+      <div class="bar-wrap">
+        <div class="bar" style="height: ${heightPct}%">
+          <div class="bar-val">${count}</div>
+        </div>
+        <div class="bar-label">${score} نقطة</div>
+      </div>
+    `;
+  });
+
+  // 2. Progress Chart (Question Accuracy)
+  let q1C=0, q2C=0, q3C=0;
+  filteredData.forEach(d => {
+    if(String(d.q1).includes(CORRECT_KEYWORDS.q1)) q1C++;
+    if(String(d.q2).includes(CORRECT_KEYWORDS.q2)) q2C++;
+    if(String(d.q3).includes(CORRECT_KEYWORDS.q3)) q3C++;
+  });
+  
+  const total = filteredData.length;
+  const renderAccBar = (num, correctCount) => {
+    const pct = Math.round((correctCount / total) * 100);
+    return `
+      <div class="acc-row">
+        <div class="acc-labels">
+          <span>السؤال ${num}</span>
+          <span style="color:var(--success)">${pct}% صحيح</span>
+        </div>
+        <div class="acc-bar-bg">
+          <div class="acc-bar-fill" style="width: ${pct}%"></div>
+        </div>
+      </div>
+    `;
+  };
+
+  const accContainer = document.getElementById('acc-chart');
+  accContainer.innerHTML = renderAccBar(1, q1C) + renderAccBar(2, q2C) + renderAccBar(3, q3C);
+
+  // 3. Line Chart (Submissions Over Time)
+  renderLineChart();
+}
+
+function renderLineChart() {
+  const container = document.getElementById('line-chart');
+  if(filteredData.length === 0) return;
+
+  // Group by date (ignoring time for simplicity)
+  const dateCounts = {};
+  [...filteredData].reverse().forEach(d => {
+    const dStr = d.timestamp.toLocaleDateString('ar-EG');
+    dateCounts[dStr] = (dateCounts[dStr] || 0) + 1;
+  });
+
+  const keys = Object.keys(dateCounts);
+  const values = Object.values(dateCounts);
+  const maxVal = Math.max(...values, 5); // at least 5 for scale
+  
+  const width = container.clientWidth || 350;
+  const height = container.clientHeight || 200;
+  
+  let points = [];
+  let pathD = "";
+  
+  if(keys.length === 1) {
+    // Just draw a line in the middle
+    pathD = `M 0,${height/2} L ${width},${height/2}`;
+    points.push(`${width/2},${height/2}`);
+  } else {
+    keys.forEach((key, index) => {
+      const x = (index / (keys.length - 1)) * width;
+      const y = height - ((values[index] / maxVal) * height);
+      points.push(`${x},${y}`);
+    });
+    
+    // Create smooth bezier curve path (simplified)
+    pathD = `M ${points[0].split(',').join(' ')}`;
+    for(let i=1; i<points.length; i++) {
+      pathD += ` L ${points[i].split(',').join(' ')}`;
+    }
+  }
+
+  // Polygon area
+  let polyPoints = `0,${height} ${points.join(' ')} ${width},${height}`;
+
+  const svgHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="none">
+      <polygon points="${polyPoints}" class="line-area" />
+      <path d="${pathD}" class="line-path" />
+      ${points.map(p => {
+        const [x,y] = p.split(',');
+        return `<circle cx="${x}" cy="${y}" r="4" fill="var(--sky-dark)" stroke="white" stroke-width="2"/>`;
+      }).join('')}
+    </svg>
+  `;
+  container.innerHTML = svgHTML;
+}
+
+function renderTable() {
+  const tbody = document.getElementById('table-body');
+  const emptyState = document.getElementById('empty-state');
+  
+  if(filteredData.length === 0) {
+    tbody.innerHTML = '';
+    emptyState.style.display = 'block';
+    return;
+  }
+  
+  emptyState.style.display = 'none';
+  
+  const getScoreBadge = (s) => {
+    if(s === 3) return `<span class="score-badge score-high">3</span>`;
+    if(s === 2) return `<span class="score-badge score-mid">2</span>`;
+    return `<span class="score-badge score-low">${s}</span>`;
+  };
+
+  const getAnswerIcon = (ansStr, isQ1, isQ2, isQ3) => {
+    const s = String(ansStr);
+    if(isQ1 && s.includes(CORRECT_KEYWORDS.q1)) return '✅';
+    if(isQ2 && s.includes(CORRECT_KEYWORDS.q2)) return '✅';
+    if(isQ3 && s.includes(CORRECT_KEYWORDS.q3)) return '✅';
+    return '❌';
+  };
+
+  const rowsHtml = filteredData.map(d => `
+    <tr>
+      <td class="id-cell">${d.studentId}</td>
+      <td class="date-cell" dir="ltr" style="text-align:right;">${d.dateFormatted}</td>
+      <td title="${d.q1}">${getAnswerIcon(d.q1, true, false, false)}</td>
+      <td title="${d.q2}">${getAnswerIcon(d.q2, false, true, false)}</td>
+      <td title="${d.q3}">${getAnswerIcon(d.q3, false, false, true)}</td>
+      <td>${getScoreBadge(d.score)}</td>
+    </tr>
+  `).join('');
+  
+  tbody.innerHTML = rowsHtml;
+}
+
+/**
+ * ─── Interactions & Filters ─────────────────────────────────────
+ */
+function filterTable() {
+  const searchVal = document.getElementById('searchId').value.toLowerCase();
+  const scoreVal = document.getElementById('filterScore').value;
+  
+  filteredData = rawData.filter(d => {
+    const matchSearch = String(d.studentId).toLowerCase().includes(searchVal);
+    const matchScore = scoreVal === 'all' || String(d.score) === scoreVal;
+    return matchSearch && matchScore;
+  });
+  
+  renderTable();
+}
+
+function sortTable() {
+  sortDesc = !sortDesc;
+  filteredData.sort((a, b) => sortDesc ? b.score - a.score : a.score - b.score);
+  renderTable();
+}
+
+/**
+ * ─── Utilities ──────────────────────────────────────────────────
+ */
+function updateEl(id, val) {
+  const el = document.getElementById(id);
+  if(el) {
+    el.classList.remove('skeleton');
+    el.textContent = val;
+  }
+}
+
+function setLoadingState(isLoading) {
+  const els = document.querySelectorAll('.skeleton');
+  if(isLoading) {
+    els.forEach(el => el.classList.add('skeleton'));
+  }
+}
+
+function showErrorState() {
+  document.getElementById('table-body').innerHTML = '';
+  document.getElementById('empty-state').style.display = 'none';
+  document.getElementById('error-state').style.display = 'block';
+  document.querySelectorAll('.skeleton').forEach(el => {
+    el.classList.remove('skeleton');
+    el.textContent = 'خطأ';
+  });
+}
+
+// Ensure line chart resizes properly
+window.addEventListener('resize', () => {
+  if(filteredData.length > 0) renderLineChart();
+});
+
+// Run on mount
+document.addEventListener('DOMContentLoaded', initDashboard);
+
+</script>
+</body>
+</html>
