@@ -1,584 +1,277 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>مهام مدير الذاكرة الأساسية</title>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800&display=swap" rel="stylesheet">
-    <!-- Font Awesome للأيقونات -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <style>
-        /* === المتغيرات والألوان === */
-        :root {
-            --primary: #00BFFF;
-            --primary-hover: #009acd;
-            --primary-light: rgba(0, 191, 255, 0.15);
-            --bg-color: #f4fafe;
-            --text-main: #2c3e50;
-            --text-muted: #546e7a;
-            --white: #ffffff;
-            --success: #2ecc71;
-            --error: #e74c3c;
-            --glass-bg: rgba(255, 255, 255, 0.85);
-            --glass-border: rgba(255, 255, 255, 0.5);
-            --glass-shadow: 0 8px 32px 0 rgba(0, 191, 255, 0.15);
-        }
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>إدارة الذاكرة | الخطة التعليمية</title>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;800;900&family=Cairo:wght@300;400;600;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet"/>
 
-        /* === الإعدادات الأساسية === */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Cairo', sans-serif;
-        }
+<style>
+/* ─── CSS Variables ─────────────────────────────────────────── */
+:root {
+  --sky:        #00BFFF;
+  --sky-dark:   #0090CC;
+  --sky-light:  #7FDFFF;
+  --sky-pale:   #E0F7FF;
+  --sky-glass:  rgba(0,191,255,0.12);
+  --white:      #FFFFFF;
+  --off-white:  #F4FBFF;
+  --text-dark:  #0A1628;
+  --text-mid:   #2D4A6B;
+  --text-soft:  #5A7FA0;
+  --card-bg:    rgba(255,255,255,0.85);
+  --card-border:rgba(0,191,255,0.22);
+  --shadow-sky: 0 8px 32px rgba(0,191,255,0.12);
+  --shadow-hover:0 12px 48px rgba(0,144,204,0.18);
+  --radius-lg:  24px;
+  --radius-md:  16px;
+  --radius-sm:  8px;
+  --font-main:  'Cairo', 'Tajawal', sans-serif;
+  --transition: 0.3s cubic-bezier(0.4,0,0.2,1);
+}
 
-        body {
-            background-color: var(--bg-color);
-            background-image: radial-gradient(circle at 15% 50%, rgba(0, 191, 255, 0.08), transparent 25%),
-                              radial-gradient(circle at 85% 30%, rgba(0, 191, 255, 0.05), transparent 25%);
-            color: var(--text-main);
-            line-height: 1.6;
-            overflow: hidden; 
-            width: 100vw;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        }
+/* ─── Reset & Base ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  font-family: var(--font-main);
+  background: var(--off-white);
+  color: var(--text-dark);
+  min-height: 100vh;
+  overflow-x: hidden;
+  line-height: 1.6;
+}
 
-        /* شريط التقدم */
-        #progress-bar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 0%;
-            height: 6px;
-            background: linear-gradient(90deg, #00BFFF, #005f99);
-            z-index: 9999;
-            transition: width 0.3s ease;
-        }
+/* ─── Animated Background ───────────────────────────────────── */
+body::before {
+  content: ''; position: fixed; inset: 0; z-index: -2;
+  background: radial-gradient(ellipse 80% 60% at 10% 20%, rgba(0,191,255,0.08) 0%, transparent 60%),
+              radial-gradient(ellipse 60% 50% at 90% 80%, rgba(0,144,204,0.06) 0%, transparent 60%),
+              linear-gradient(160deg, #F0FAFF 0%, #E8F7FF 40%, #F8FDFF 100%);
+}
+body::after {
+  content: ''; position: fixed; inset: 0; z-index: -1;
+  background-image: radial-gradient(circle 1px at 20% 30%, rgba(0,191,255,0.25) 1px, transparent 0),
+                    radial-gradient(circle 1px at 60% 70%, rgba(0,191,255,0.15) 1px, transparent 0);
+  background-size: 80px 80px, 120px 120px;
+  animation: drift 20s linear infinite;
+}
+@keyframes drift { to { background-position: 80px 80px, 120px 120px; } }
 
-        /* أشكال الخلفية العائمة */
-        .bg-shapes {
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            z-index: -1;
-            overflow: hidden;
-        }
-        .shape {
-            position: absolute;
-            background: linear-gradient(45deg, rgba(0,191,255,0.1), rgba(0,191,255,0.05));
-            border-radius: 50%;
-            animation: float 15s infinite ease-in-out;
-        }
-        .shape:nth-child(1) { width: 300px; height: 300px; top: -100px; right: -50px; }
-        .shape:nth-child(2) { width: 400px; height: 400px; bottom: -150px; left: -100px; }
-        .shape:nth-child(3) { width: 200px; height: 200px; top: 40%; left: 20%; }
+/* ─── Layout ────────────────────────────────────────────────── */
+.container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 60px 24px;
+}
 
-        @keyframes float {
-            0%, 100% { transform: translateY(0) scale(1); }
-            50% { transform: translateY(-30px) scale(1.05); }
-        }
+/* ─── Hero Section ──────────────────────────────────────────── */
+.hero {
+  text-align: center;
+  margin-bottom: 56px;
+}
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: linear-gradient(90deg, rgba(0,191,255,0.12), rgba(0,191,255,0.05));
+  border: 1px solid rgba(0,191,255,0.25);
+  border-radius: 20px; padding: 6px 16px;
+  font-size: 0.85rem; font-weight: 700; color: var(--sky-dark);
+  margin-bottom: 16px;
+}
+.hero-title {
+  font-size: clamp(2rem, 5vw, 3rem); font-weight: 900;
+  color: var(--text-dark); margin-bottom: 16px;
+  line-height: 1.3;
+}
+.hero-title span {
+  background: linear-gradient(90deg, var(--sky-dark), var(--sky));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.hero-subtitle {
+  font-size: 1.15rem; color: var(--text-mid); font-weight: 500;
+  max-width: 700px; margin: 0 auto;
+}
 
-        /* حاوية العرض التقديمي */
-        .presentation-container {
-            width: 100%;
-            height: 100%;
-            position: relative;
-        }
+/* ─── Timeline / Syllabus ───────────────────────────────────── */
+.syllabus-grid {
+  display: flex; flex-direction: column; gap: 32px;
+  position: relative;
+}
+/* الخط الرابط بين الكروت */
+.syllabus-grid::before {
+  content: ''; position: absolute; top: 20px; bottom: 20px; right: 40px;
+  width: 4px; background: linear-gradient(180deg, var(--sky-pale), var(--sky), var(--sky-pale));
+  border-radius: 4px; z-index: 0;
+}
 
-        /* === إعدادات الشرائح === */
-        .slide {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            opacity: 0;
-            visibility: hidden;
-            transform: scale(0.95);
-            transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 20px 5%;
-            overflow-y: auto; /* يسمح بالتمرير إذا كان المحتوى أكبر من الشاشة */
-            padding-bottom: 100px; /* مساحة لأزرار التحكم */
-        }
+/* ─── Topic Card ────────────────────────────────────────────── */
+.topic-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius-lg);
+  padding: 32px 40px 32px 80px; /* مساحة للرقم على اليمين */
+  box-shadow: var(--shadow-sky);
+  position: relative; z-index: 1;
+  transition: var(--transition);
+}
+.topic-card:hover {
+  box-shadow: var(--shadow-hover); transform: translateY(-4px);
+}
+.topic-number {
+  position: absolute; right: -20px; top: 32px;
+  width: 60px; height: 60px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--sky-dark), var(--sky));
+  color: white; font-size: 1.6rem; font-weight: 900;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 24px rgba(0,191,255,0.4);
+  border: 4px solid var(--off-white);
+}
+.topic-title {
+  font-size: 1.4rem; font-weight: 800; color: var(--text-dark);
+  margin-bottom: 12px;
+}
+.topic-desc {
+  font-size: 1rem; color: var(--text-mid); line-height: 1.8;
+  margin-bottom: 24px;
+}
+.topic-desc strong { color: var(--sky-dark); font-weight: 700; }
 
-        .slide.active {
-            opacity: 1;
-            visibility: visible;
-            transform: scale(1);
-            z-index: 10;
-        }
+/* ─── Links List ────────────────────────────────────────────── */
+.links-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 16px;
+}
+.lesson-link {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 16px; border-radius: var(--radius-md);
+  border: 1px solid rgba(0,191,255,0.15);
+  background: rgba(255,255,255,0.6);
+  text-decoration: none; transition: var(--transition);
+}
+.lesson-link:hover {
+  background: var(--sky-pale); border-color: var(--sky);
+  transform: translateX(-4px);
+}
+.lesson-header { display: flex; justify-content: space-between; align-items: center; }
+.lesson-name { font-size: 1.05rem; font-weight: 700; color: var(--text-dark); }
+.lesson-type { font-size: 0.75rem; font-weight: 700; padding: 4px 10px; border-radius: 12px; }
+.type-lesson { background: rgba(0,191,255,0.15); color: var(--sky-dark); }
+.type-dashboard { background: rgba(0,200,120,0.15); color: #007A4A; }
+.type-coming { background: rgba(255,176,32,0.15); color: #A05A00; }
+.lesson-desc { font-size: 0.85rem; color: var(--text-soft); }
 
-        /* === التأثيرات الزجاجية === */
-        .glass {
-            background: var(--glass-bg);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border: 1px solid var(--glass-border);
-            border-radius: 20px;
-            box-shadow: var(--glass-shadow);
-        }
-
-        /* === المحتوى داخل الشرائح === */
-        .hero-title {
-            font-size: clamp(1.8rem, 5vw, 2.8rem);
-            font-weight: 800;
-            color: var(--primary);
-            margin-bottom: 20px;
-            text-align: center;
-            text-shadow: 0 2px 10px rgba(0, 191, 255, 0.2);
-        }
-
-        .hero-intro {
-            font-size: clamp(1rem, 3vw, 1.4rem);
-            color: var(--text-muted);
-            max-width: 900px;
-            padding: clamp(20px, 5vw, 40px);
-            text-align: center;
-            line-height: 1.8;
-        }
-
-        .hero-icon {
-            font-size: clamp(50px, 10vw, 80px);
-            color: var(--primary);
-            margin-bottom: 15px;
-            animation: bounce 2s infinite ease-in-out;
-        }
-
-        @keyframes bounce {
-            0%, 100% { transform: translateY(0); }
-            50% { transform: translateY(-15px); }
-        }
-
-        .tasks-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 20px;
-            width: 100%;
-            max-width: 1200px;
-        }
-
-        .task-card {
-            padding: 25px;
-            text-align: center;
-            transition: transform 0.3s ease;
-            display: flex;
-            flex-direction: column;
-            height: 100%;
-        }
-
-        .task-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 15px 40px rgba(0, 191, 255, 0.2);
-        }
-
-        .task-icon {
-            width: 60px; height: 60px;
-            background-color: var(--primary-light);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 24px;
-            color: var(--primary);
-            margin: 0 auto 15px auto;
-            flex-shrink: 0;
-        }
-
-        .task-content {
-            font-size: clamp(0.95rem, 2.5vw, 1.1rem);
-            flex-grow: 1;
-        }
-
-        .joke-card {
-            text-align: center;
-            padding: 20px;
-            margin-top: 20px;
-            background: linear-gradient(135deg, var(--primary), #007bb5);
-            color: var(--white);
-            border-radius: 15px;
-            font-size: clamp(1.1rem, 3vw, 1.4rem);
-            font-weight: 700;
-            width: 100%;
-            max-width: 900px;
-        }
-
-        .game-intro {
-            font-size: clamp(1.1rem, 3vw, 1.3rem);
-            margin-bottom: 20px;
-            padding: 20px;
-            text-align: center;
-            max-width: 900px;
-        }
-
-        .scenario-card {
-            padding: clamp(20px, 5vw, 30px);
-            border-right: 6px solid var(--primary);
-            max-width: 900px;
-            width: 100%;
-            margin-bottom: 10px;
-        }
-
-        .scenario-text {
-            font-size: clamp(1.1rem, 3vw, 1.4rem);
-            margin-bottom: 20px;
-            font-weight: 600;
-        }
-
-        /* أزرار اللعبة */
-        .choices-container {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            width: 100%;
-        }
-
-        .choice-btn {
-            background: var(--white);
-            color: var(--text-main);
-            border: 2px solid var(--primary-light);
-            padding: 12px 20px;
-            border-radius: 12px;
-            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-            font-weight: 700;
-            cursor: pointer;
-            transition: all 0.3s;
-            text-align: center;
-            width: 100%;
-        }
-
-        @media (min-width: 768px) {
-            .choices-container {
-                flex-direction: row;
-                flex-wrap: wrap;
-            }
-            .choice-btn {
-                flex: 1 1 calc(50% - 12px);
-            }
-        }
-
-        .choice-btn:hover:not(:disabled) {
-            background: var(--primary);
-            color: var(--white);
-            border-color: var(--primary);
-        }
-
-        .choice-btn.correct { background: var(--success) !important; color: var(--white) !important; border-color: var(--success) !important; }
-        .choice-btn.wrong { background: var(--error) !important; color: var(--white) !important; border-color: var(--error) !important; }
-
-        .feedback-msg {
-            margin-top: 15px;
-            padding: 12px;
-            border-radius: 10px;
-            font-weight: 700;
-            font-size: 1rem;
-            display: none;
-            text-align: center;
-        }
-
-        .summary-list {
-            list-style: none;
-            padding: 20px;
-            font-size: clamp(0.95rem, 2.5vw, 1.2rem);
-            background: var(--glass-bg);
-            border-radius: 20px;
-        }
-
-        .summary-list li {
-            margin-bottom: 12px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid var(--primary-light);
-            display: flex;
-            align-items: flex-start;
-            gap: 10px;
-        }
-
-        .summary-list li i {
-            margin-top: 5px;
-            color: var(--primary);
-        }
-
-        /* === أزرار التحكم بالشريحة === */
-        .controls {
-            position: fixed;
-            bottom: 20px;
-            left: 0;
-            width: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            gap: 15px;
-            z-index: 100;
-            padding: 0 10px;
-        }
-
-        .nav-btn {
-            background: var(--primary);
-            color: var(--white);
-            border: none;
-            padding: 10px 20px;
-            border-radius: 25px;
-            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
-            font-weight: 700;
-            cursor: pointer;
-            box-shadow: 0 5px 15px rgba(0, 191, 255, 0.3);
-            transition: all 0.3s;
-            white-space: nowrap;
-        }
-
-        .slide-indicator {
-            font-size: 0.9rem;
-            font-weight: 800;
-            background: var(--glass-bg);
-            padding: 6px 15px;
-            border-radius: 15px;
-            border: 1px solid var(--glass-border);
-        }
-
-        footer {
-            margin-top: 20px;
-            padding: 15px;
-            font-size: 0.9rem;
-            text-align: center;
-            width: 100%;
-        }
-
-        /* تحسينات للشاشات الصغيرة جداً */
-        @media (max-width: 480px) {
-            .hero-title { margin-top: 40px; }
-            .controls { bottom: 10px; gap: 8px; }
-            .nav-btn { padding: 8px 15px; }
-        }
-    </style>
+/* ─── Responsive ────────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .syllabus-grid::before { right: 20px; }
+  .topic-card { padding: 32px 20px 32px 40px; margin-right: 20px; }
+  .topic-number { right: -30px; width: 48px; height: 48px; font-size: 1.2rem; top: 38px;}
+  .hero-title { font-size: 1.8rem; }
+}
+</style>
 </head>
 <body>
 
-    <div id="progress-bar"></div>
+<div class="container">
 
-    <div class="bg-shapes">
-        <div class="shape"></div>
-        <div class="shape"></div>
-        <div class="shape"></div>
+  <!-- Hero Section -->
+  <div class="hero">
+    <div class="hero-badge">🎓 رحلة تعليمية متكاملة</div>
+    <h1 class="hero-title">الفصل التعليمي: <span>إدارة الذاكرة (Memory Management)</span></h1>
+    <p class="hero-subtitle">
+      لكي نجعل رحلتنا التعليمية ممتعة وبسيطة، قمت بتقسيم هذا الفصل المليء بالمعلومات إلى ثلاثة مواضيع فرعية متسلسلة ومنطقية، وسنتناولها خطوة بخطوة:
+    </p>
+  </div>
+
+  <!-- Syllabus Grid -->
+  <div class="syllabus-grid">
+
+    <!-- Topic 1 -->
+    <div class="topic-card">
+      <div class="topic-number">1</div>
+      <h2 class="topic-title">الموضوع الفرعي الأول: مهام مدير الذاكرة الأساسية</h2>
+      <p class="topic-desc">
+        سنكتشف معاً ما هو دور مدير الذاكرة، وكيف يراقب الأجزاء الفارغة والمشغولة، وكيف يحمي بيانات البرامج من التداخل مع بعضها البعض.
+      </p>
+      <div class="links-grid">
+         <a href="Memory_manager_tasks.html" class="lesson-link">
+
+          <div class="lesson-header">
+            <span class="lesson-name">مهام مدير الذاكرة</span>
+            <span class="lesson-type type-coming">درس تفاعلي 🕹️</span>
+          </div>
+          <span class="lesson-desc">شرح مبسط لأدوار مدير الذاكرة في النظام.</span>
+        </a>
+      </div>
     </div>
 
-    <div class="presentation-container" id="presentation">
-
-        <!-- الشريحة 1 -->
-        <div class="slide active">
-             <i class="fas fa-hotel hero-icon"></i>
-            <h1 class="hero-title">مهام مدير الذاكرة الأساسية</h1>
-            <div class="hero-intro glass">
-                تخيل معي أن "مدير الذاكرة" يشبه تماماً مدير الاستقبال في فندق ضخم ومزدحم جداً. هذا المدير لديه مهام حيوية لضمان راحة النزلاء وعدم حدوث أي فوضى.
-            </div>
-        </div>
-
-        <!-- الشريحة 2 -->
-        <div class="slide">
-            <div class="tasks-grid">
-                <div class="task-card glass">
-                    <div class="task-icon"><i class="fas fa-search-location"></i></div>
-                    <div class="task-content">
-                        <strong>1. تتبع الغرف:</strong> تتبع أجزاء الذاكرة المستخدمة (المشغولة) والأجزاء الفارغة باستمرار.
-                    </div>
-                </div>
-                <div class="task-card glass">
-                    <div class="task-icon"><i class="fas fa-key"></i></div>
-                    <div class="task-content">
-                        <strong>2. حجز الغرف:</strong> تخصيص جزء مناسب من الذاكرة للبرامج الجديدة وتحميلها لتبدأ عملها.
-                    </div>
-                </div>
-                <div class="task-card glass">
-                    <div class="task-icon"><i class="fas fa-door-open"></i></div>
-                    <div class="task-content">
-                        <strong>3. تسجيل الخروج:</strong> تفريغ الذاكرة فور انتهاء البرنامج ليتمكن غيره من استخدامها.
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- الشريحة 3 -->
-        <div class="slide">
-            <div class="tasks-grid">
-                <div class="task-card glass">
-                    <div class="task-icon"><i class="fas fa-exchange-alt"></i></div>
-                    <div class="task-content">
-                        <strong>4. التبديل (Swapping):</strong> نقل أمتعة بعض النزلاء مؤقتاً للقرص الصلب لإفساح مجال لآخرين.
-                    </div>
-                </div>
-                <div class="task-card glass">
-                    <div class="task-icon"><i class="fas fa-shield-alt"></i></div>
-                    <div class="task-content">
-                        <strong>5. الأمن والحماية:</strong> منع أي برنامج من اقتحام مساحة برنامج آخر أو نظام التشغيل.
-                    </div>
-                </div>
-            </div>
-            <div class="joke-card">
-                لماذا ذهب مدير الذاكرة للطبيب؟ لأنه فقد "ذاكرته" ولم يعد قادراً على تتبع العناوين! 😄
-            </div>
-        </div>
-
-        <!-- الشريحة 4: اللعبة -->
-        <div class="slide">
-            <div class="game-intro glass">
-                تخيل أنك "مدير الفندق" الآن.. كيف ستتصرف؟ 🎮
-            </div>
-            <div class="scenario-card glass">
-                <p class="scenario-text">الموقف الأول: انتهى "برنامج الآلة الحاسبة" وغادر الفندق. ماذا ستفعل بمساحته؟</p>
-                <div class="choices-container">
-                    <button class="choice-btn" onclick="checkAnswer(this, false)">تتبع الغرف</button>
-                    <button class="choice-btn" onclick="checkAnswer(this, true)">تسجيل الخروج (التحرير)</button>
-                    <button class="choice-btn" onclick="checkAnswer(this, false)">الأمن والحماية</button>
-                </div>
-                <div class="feedback-msg"></div>
-            </div>
-        </div>
-
-        <!-- الشريحة 5 -->
-        <div class="slide">
-            <div class="scenario-card glass">
-                <p class="scenario-text">الموقف الثاني: الفندق ممتلئ! ستقوم بنقل برنامج "خامل" مؤقتاً للقرص الصلب. ماذا نسمي هذا؟</p>
-                <div class="choices-container">
-                    <button class="choice-btn" onclick="checkAnswer(this, false)">حجز الغرف</button>
-                    <button class="choice-btn" onclick="checkAnswer(this, true)">التبديل (Swapping)</button>
-                    <button class="choice-btn" onclick="checkAnswer(this, false)">تتبع الغرف</button>
-                </div>
-                <div class="feedback-msg"></div>
-            </div>
-        </div>
-
-        <!-- الشريحة 6 -->
-        <div class="slide">
-            <div class="scenario-card glass">
-                <p class="scenario-text">الموقف الثالث: برنامج يحاول التسلل لغرفة "نظام التشغيل"! ما هو دورك هنا؟</p>
-                <div class="choices-container">
-                    <button class="choice-btn" onclick="checkAnswer(this, false)">تسجيل الخروج</button>
-                    <button class="choice-btn" onclick="checkAnswer(this, true)">الأمن والحماية</button>
-                    <button class="choice-btn" onclick="checkAnswer(this, false)">التبديل</button>
-                </div>
-                <div class="feedback-msg"></div>
-            </div>
-        </div>
-
-        <!-- الشريحة 7 -->
-        <div class="slide">
-            <div class="container" style="width: 100%; max-width: 800px;">
-                <h2 class="hero-title">خلاصة المهام 📌</h2>
-                <ul class="summary-list glass">
-                    <li><i class="fas fa-check-circle"></i> تتبع المساحات الفارغة والمشغولة.</li>
-                    <li><i class="fas fa-check-circle"></i> حجز مساحة للبرامج الجديدة.</li>
-                    <li><i class="fas fa-check-circle"></i> تحرير مساحة البرامج المنتهية.</li>
-                    <li><i class="fas fa-check-circle"></i> إدارة عملية التبديل (Swapping).</li>
-                    <li><i class="fas fa-check-circle"></i> حماية النظام من التداخل.</li>
-                </ul>
-                <div style="text-align:center; margin-top:20px;">
-                    <button onclick="goToSlide(0)" class="nav-btn"><i class="fas fa-redo"></i> البدء من جديد</button>
-                </div>
-                <footer class="glass">تم التصميم ليعمل بكفاءة على جميع الأجهزة. ✨</footer>
-            </div>
-        </div>
-
-    </div>
-
-    <div class="controls">
-        <button class="nav-btn" id="next-btn" onclick="nextSlide()">التالي ▶</button>
-        <div class="slide-indicator" id="slide-indicator">1 / 7</div>
-        <button class="nav-btn" id="prev-btn" onclick="prevSlide()" disabled>◀ السابق</button>
-    </div>
-
-    <script>
-        const slides = document.querySelectorAll('.slide');
-        const nextBtn = document.getElementById('next-btn');
-        const prevBtn = document.getElementById('prev-btn');
-        const indicator = document.getElementById('slide-indicator');
-        const progressBar = document.getElementById('progress-bar');
+    <!-- Topic 2 (The Core - Lessons & Dashboards) -->
+    <div class="topic-card">
+      <div class="topic-number">2</div>
+      <h2 class="topic-title">الموضوع الفرعي الثاني: طرق تخصيص الذاكرة الكلاسيكية</h2>
+      <p class="topic-desc">
+        سنتعرف على رحلة تطور إدارة الذاكرة، بدءاً من طريقة البرنامج الواحد، مروراً بالتجزئة الثابتة والديناميكية، وصولاً إلى كيفية حل مشكلة الفراغات المبعثرة باستخدام التجزئة القابلة للنقل (عملية الضغط).
+      </p>
+      <div class="links-grid">
+        <!-- Lesson 2.1 -->
+        <a href="single-user-scheme.html" class="lesson-link">
+          <div class="lesson-header">
+            <span class="lesson-name">1. طريقة البرنامج الواحد</span>
+            <span class="lesson-type type-lesson">درس تفاعلي 🕹️</span>
+          </div>
+          <span class="lesson-desc">النظام الأحادي (Single-User Contiguous) ومفهوم ضيف واحد فقط.</span>
+        </a>
         
-        let currentSlideIndex = 0;
+        <!-- Lesson 2.2 -->
+        <a href="fixed-partitions-scheme.html" class="lesson-link">
+          <div class="lesson-header">
+            <span class="lesson-name">2. التجزئة الثابتة</span>
+            <span class="lesson-type type-lesson">درس تفاعلي 🕹️</span>
+          </div>
+          <span class="lesson-desc">مفهوم الجدران الثابتة والتجزئة الداخلية (Internal Fragmentation).</span>
+        </a>
 
-        function updateSlide() {
-            slides.forEach((slide, index) => {
-                slide.classList.toggle('active', index === currentSlideIndex);
-            });
+        <!-- Lesson 2.3 -->
+        <a href="dynamic-partitions-scheme.html" class="lesson-link">
+          <div class="lesson-header">
+            <span class="lesson-name">3. التجزئة الديناميكية</span>
+            <span class="lesson-type type-lesson">درس تفاعلي 🕹️</span>
+          </div>
+          <span class="lesson-desc">الحواجز المرنة وظهور مشكلة التجزئة الخارجية (External Fragmentation).</span>
+        </a>
 
-            indicator.textContent = `${currentSlideIndex + 1} / ${slides.length}`;
-            prevBtn.disabled = currentSlideIndex === 0;
-            nextBtn.disabled = currentSlideIndex === slides.length - 1;
+        <!-- Lesson 2.4 -->
+        <a href="relocatable-dynamic-partitions.html" class="lesson-link">
+          <div class="lesson-header">
+            <span class="lesson-name">4. التجزئة القابلة للنقل</span>
+            <span class="lesson-type type-lesson">درس تفاعلي 🕹️</span>
+          </div>
+          <span class="lesson-desc">عملية الضغط (Compaction) وعمل المسجلات (الإزاحة والحدود).</span>
+        </a>
+      </div>
+    </div>
 
-            const progress = ((currentSlideIndex + 1) / slides.length) * 100;
-            progressBar.style.width = `${progress}%`;
-        }
+    <!-- Topic 3 -->
+    <div class="topic-card">
+      <div class="topic-number">3</div>
+      <h2 class="topic-title">الموضوع الفرعي الثالث: إدارة الذاكرة بالصفحات (Paging)</h2>
+      <p class="topic-desc">
+        هنا سنغوص في التقنية الأحدث والأكثر كفاءة، حيث يتم تقسيم البرامج إلى <strong>"صفحات" (Pages)</strong> والذاكرة إلى <strong>"إطارات" (Frames)</strong>، لنتعرف كيف تساهم هذه الطريقة بذكاء في التخلص من مشاكل الفراغات المزعجة.
+      </p>
+      <div class="links-grid">
+        <div class="lesson-link" style="cursor: default; opacity: 0.8;">
+          <div class="lesson-header">
+            <span class="lesson-name">نظام الصفحات والإطارات</span>
+            <span class="lesson-type type-coming">قريباً ⏳</span>
+          </div>
+          <span class="lesson-desc">شرح الـ Paging وكيفية تفادي التجزئة الخارجية تماماً.</span>
+        </div>
+      </div>
+    </div>
 
-        function nextSlide() {
-            if (currentSlideIndex < slides.length - 1) {
-                currentSlideIndex++;
-                updateSlide();
-            }
-        }
+  </div>
 
-        function prevSlide() {
-            if (currentSlideIndex > 0) {
-                currentSlideIndex--;
-                updateSlide();
-            }
-        }
+</div>
 
-        function goToSlide(index) {
-            currentSlideIndex = index;
-            updateSlide();
-        }
-
-        // دعم لوحة المفاتيح
-        window.addEventListener('keydown', (e) => {
-            if (e.key === 'ArrowLeft' || e.key === 'ArrowDown') nextSlide();
-            if (e.key === 'ArrowRight' || e.key === 'ArrowUp') prevSlide();
-        });
-
-        // دعم اللمس (Swipe)
-        let touchStartX = 0;
-        let touchEndX = 0;
-
-        document.addEventListener('touchstart', e => {
-            touchStartX = e.changedTouches[0].screenX;
-        }, false);
-
-        document.addEventListener('touchend', e => {
-            touchEndX = e.changedTouches[0].screenX;
-            handleSwipe();
-        }, false);
-
-        function handleSwipe() {
-            if (touchEndX < touchStartX - 50) nextSlide();
-            if (touchEndX > touchStartX + 50) prevSlide();
-        }
-
-        // منطق اللعبة
-        function checkAnswer(btnElement, isCorrect) {
-            const container = btnElement.parentElement;
-            const feedbackMsg = container.nextElementSibling;
-            const allButtons = container.querySelectorAll('.choice-btn');
-
-            allButtons.forEach(btn => btn.disabled = true);
-
-            if(isCorrect) {
-                btnElement.classList.add('correct');
-                feedbackMsg.innerHTML = "إجابة صحيحة! أحسنت يا مدير. 🎉";
-                feedbackMsg.style.display = "block";
-                feedbackMsg.style.color = "#27ae60";
-                feedbackMsg.style.background = "rgba(46, 204, 113, 0.1)";
-            } else {
-                btnElement.classList.add('wrong');
-                feedbackMsg.innerHTML = "إجابة خاطئة! راجع المهام. 💡";
-                feedbackMsg.style.display = "block";
-                feedbackMsg.style.color = "#c0392b";
-                feedbackMsg.style.background = "rgba(231, 76, 60, 0.1)";
-            }
-        }
-
-        updateSlide();
-    </script>
 </body>
 </html>
